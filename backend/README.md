@@ -1,13 +1,15 @@
-# Production database migration
+# Подключение общей базы
 
-The browser version uses IndexedDB so it runs without a server. `schema.sql` is a production-ready starting point for PostgreSQL/Supabase.
+Текущая версия хранит данные в браузере. `schema.sql` — заготовка для PostgreSQL или Supabase, когда понадобится общая база учеников.
 
-Recommended API endpoints:
+Минимальные серверные методы:
 
-- `POST /api/events` — append an action log event.
-- `POST /api/answers` — save an evaluated answer.
-- `GET /api/me/progress` — return profile, skills and unlocks.
-- `PATCH /api/admin/profiles/:id` — edit skill values (admin only).
-- `GET /api/admin/analytics` — aggregated answer and retention metrics.
+- `POST /api/events` — записать действие;
+- `POST /api/lesson-attempts` — создать попытку урока;
+- `POST /api/answers` — сохранить и оценить ответ;
+- `POST /api/lesson-attempts/:id/complete` — один раз начислить награду;
+- `GET /api/me/progress` — профиль и навыки ученика;
+- `GET /api/admin/analytics` — сводная аналитика;
+- `PATCH /api/admin/profiles/:id` — изменение навыков администратором.
 
-Before production, add authentication, row-level access rules, server-side answer evaluation and retention/privacy controls. Never trust skill values or admin permissions sent by the browser.
+Перед публикацией с реальными учениками нужны авторизация, политики Row Level Security, серверная проверка ролей, резервные копии и правила хранения персональных данных. Награды и права администратора нельзя доверять коду браузера.

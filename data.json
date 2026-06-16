@@ -7,7 +7,12 @@
       "initials": "MY",
       "accent": "violet",
       "description": "Живой small talk, идеи и уверенная самопрезентация.",
-      "startingStats": { "confidence": 28, "vocabulary": 34, "fluency": 26, "accuracy": 24 }
+      "startingStats": {
+        "confidence": 28,
+        "vocabulary": 34,
+        "fluency": 26,
+        "accuracy": 24
+      }
     },
     {
       "id": "product",
@@ -16,7 +21,12 @@
       "initials": "NH",
       "accent": "blue",
       "description": "Рабочие созвоны, ясные решения и спокойная аргументация.",
-      "startingStats": { "confidence": 30, "vocabulary": 30, "fluency": 25, "accuracy": 30 }
+      "startingStats": {
+        "confidence": 30,
+        "vocabulary": 30,
+        "fluency": 25,
+        "accuracy": 30
+      }
     },
     {
       "id": "global",
@@ -25,7 +35,12 @@
       "initials": "AM",
       "accent": "sand",
       "description": "Деловое общение, нетворкинг и точные формулировки.",
-      "startingStats": { "confidence": 31, "vocabulary": 32, "fluency": 24, "accuracy": 28 }
+      "startingStats": {
+        "confidence": 31,
+        "vocabulary": 32,
+        "fluency": 24,
+        "accuracy": 28
+      }
     },
     {
       "id": "travel",
@@ -34,7 +49,12 @@
       "initials": "LE",
       "accent": "green",
       "description": "Путешествия, новые знакомства и естественные истории.",
-      "startingStats": { "confidence": 34, "vocabulary": 25, "fluency": 31, "accuracy": 22 }
+      "startingStats": {
+        "confidence": 34,
+        "vocabulary": 25,
+        "fluency": 31,
+        "accuracy": 22
+      }
     },
     {
       "id": "academic",
@@ -43,7 +63,12 @@
       "initials": "EL",
       "accent": "rose",
       "description": "Структурная речь, объяснения и академическая точность.",
-      "startingStats": { "confidence": 27, "vocabulary": 35, "fluency": 23, "accuracy": 34 }
+      "startingStats": {
+        "confidence": 27,
+        "vocabulary": 35,
+        "fluency": 23,
+        "accuracy": 34
+      }
     },
     {
       "id": "founder",
@@ -52,40 +77,97 @@
       "initials": "KI",
       "accent": "orange",
       "description": "Питчи, переговоры и энергичное профессиональное общение.",
-      "startingStats": { "confidence": 35, "vocabulary": 29, "fluency": 28, "accuracy": 25 }
+      "startingStats": {
+        "confidence": 35,
+        "vocabulary": 29,
+        "fluency": 28,
+        "accuracy": 25
+      }
     }
   ],
   "skillMilestones": [
-    { "value": 25, "label": "Foundation", "unlock": "Персональные подсказки" },
-    { "value": 50, "label": "Flow", "unlock": "Диалоги без подсказок" },
-    { "value": 75, "label": "Confidence", "unlock": "Сложные сценарии" },
-    { "value": 100, "label": "Mastery", "unlock": "Экспертный режим" }
+    {
+      "value": 25,
+      "label": "Foundation",
+      "unlock": "Персональные подсказки"
+    },
+    {
+      "value": 50,
+      "label": "Flow",
+      "unlock": "Диалоги без подсказок"
+    },
+    {
+      "value": 75,
+      "label": "Confidence",
+      "unlock": "Сложные сценарии"
+    },
+    {
+      "value": 100,
+      "label": "Mastery",
+      "unlock": "Экспертный режим"
+    }
   ],
   "lessons": [
     {
       "id": "neighbors",
       "title": "New in the building",
       "goal": "Познакомиться с соседями и поддержать короткий разговор.",
-      "npc": { "name": "Alex", "role": "your new neighbour", "initial": "A" },
-      "reward": { "xp": 45, "coins": 30 },
+      "npc": {
+        "name": "Alex",
+        "role": "your new neighbour",
+        "initial": "A"
+      },
+      "reward": {
+        "xp": 45,
+        "coins": 30
+      },
       "prompts": [
         {
           "npc": "Hey! I don't think we've met before. Are you new here?",
           "task": "Поздоровайтесь и скажите, что недавно переехали.",
-          "targetChunks": ["Nice to meet you", "I just moved in"],
-          "keywords": ["new", "moved", "meet", "building"]
+          "targetChunks": [
+            "Nice to meet you",
+            "I just moved in"
+          ],
+          "keywords": [
+            "new",
+            "moved",
+            "meet",
+            "building"
+          ],
+          "exampleAnswer": "Hi! Nice to meet you. Yes, I just moved into the building a few days ago."
         },
         {
           "npc": "Welcome! How are you finding the neighbourhood so far?",
           "task": "Поделитесь первым впечатлением и добавьте одну деталь.",
-          "targetChunks": ["So far", "I really like"],
-          "keywords": ["like", "quiet", "friendly", "area", "neighbourhood"]
+          "targetChunks": [
+            "So far",
+            "I really like"
+          ],
+          "keywords": [
+            "like",
+            "quiet",
+            "friendly",
+            "area",
+            "neighbourhood"
+          ],
+          "exampleAnswer": "So far, I really like the neighbourhood because it feels quiet and friendly."
         },
         {
           "npc": "A few of us are getting coffee on Saturday. Would you like to join?",
           "task": "Примите приглашение и уточните время.",
-          "targetChunks": ["I'd love to", "What time"],
-          "keywords": ["love", "join", "time", "saturday", "coffee"]
+          "targetChunks": [
+            "I'd love to",
+            "What time"
+          ],
+          "keywords": [
+            "love",
+            "join",
+            "time",
+            "saturday",
+            "coffee"
+          ],
+          "exampleAnswer": "I'd love to join you for coffee on Saturday. What time are you meeting?"
         }
       ]
     },
@@ -93,26 +175,62 @@
       "id": "team-call",
       "title": "A quick team sync",
       "goal": "Уточнить статус задачи и предложить следующий шаг.",
-      "npc": { "name": "Sam", "role": "project teammate", "initial": "S" },
-      "reward": { "xp": 55, "coins": 35 },
+      "npc": {
+        "name": "Sam",
+        "role": "project teammate",
+        "initial": "S"
+      },
+      "reward": {
+        "xp": 55,
+        "coins": 35
+      },
       "prompts": [
         {
           "npc": "Could you give me a quick update on your part of the project?",
           "task": "Кратко опишите, что уже готово.",
-          "targetChunks": ["I've finished", "The main update is"],
-          "keywords": ["finished", "completed", "update", "ready"]
+          "targetChunks": [
+            "I've finished",
+            "The main update is"
+          ],
+          "keywords": [
+            "finished",
+            "completed",
+            "update",
+            "ready"
+          ],
+          "exampleAnswer": "I've finished the first draft, and the main update is ready for review."
         },
         {
           "npc": "Is anything blocking you at the moment?",
           "task": "Назовите одну сложность и объясните её.",
-          "targetChunks": ["The only issue is", "I'm waiting for"],
-          "keywords": ["issue", "waiting", "need", "problem", "blocked"]
+          "targetChunks": [
+            "The only issue is",
+            "I'm waiting for"
+          ],
+          "keywords": [
+            "issue",
+            "waiting",
+            "need",
+            "problem",
+            "blocked"
+          ],
+          "exampleAnswer": "The only issue is that I'm waiting for the final numbers from the design team."
         },
         {
           "npc": "Okay, what do you suggest we do next?",
           "task": "Предложите конкретный следующий шаг.",
-          "targetChunks": ["I suggest we", "The next step is"],
-          "keywords": ["suggest", "next", "step", "could", "plan"]
+          "targetChunks": [
+            "I suggest we",
+            "The next step is"
+          ],
+          "keywords": [
+            "suggest",
+            "next",
+            "step",
+            "could",
+            "plan"
+          ],
+          "exampleAnswer": "I suggest we review the draft today and agree on the next step tomorrow."
         }
       ]
     },
@@ -120,26 +238,258 @@
       "id": "city-help",
       "title": "Help in the city",
       "goal": "Попросить помощь, уточнить маршрут и поблагодарить.",
-      "npc": { "name": "Jordan", "role": "local resident", "initial": "J" },
-      "reward": { "xp": 50, "coins": 32 },
+      "npc": {
+        "name": "Jordan",
+        "role": "local resident",
+        "initial": "J"
+      },
+      "reward": {
+        "xp": 50,
+        "coins": 32
+      },
       "prompts": [
         {
           "npc": "Hi there, you look a little lost. Can I help?",
           "task": "Скажите, какое место вы ищете.",
-          "targetChunks": ["I'm looking for", "Could you help me"],
-          "keywords": ["looking", "find", "station", "museum", "help"]
+          "targetChunks": [
+            "I'm looking for",
+            "Could you help me"
+          ],
+          "keywords": [
+            "looking",
+            "find",
+            "station",
+            "museum",
+            "help"
+          ],
+          "exampleAnswer": "Thanks! I'm looking for the city museum. Could you help me find it?"
         },
         {
           "npc": "Sure. Go straight and turn left after the bank.",
           "task": "Переспросите, правильно ли вы поняли маршрут.",
-          "targetChunks": ["Just to make sure", "Did you say"],
-          "keywords": ["straight", "left", "bank", "sure", "mean"]
+          "targetChunks": [
+            "Just to make sure",
+            "Did you say"
+          ],
+          "keywords": [
+            "straight",
+            "left",
+            "bank",
+            "sure",
+            "mean"
+          ],
+          "exampleAnswer": "Just to make sure, did you say I should turn left after the bank?"
         },
         {
           "npc": "Exactly. It will be on your right. You can't miss it.",
           "task": "Поблагодарите и вежливо завершите разговор.",
-          "targetChunks": ["Thanks a lot", "I appreciate it"],
-          "keywords": ["thank", "appreciate", "help", "day"]
+          "targetChunks": [
+            "Thanks a lot",
+            "I appreciate it"
+          ],
+          "keywords": [
+            "thank",
+            "appreciate",
+            "help",
+            "day"
+          ],
+          "exampleAnswer": "Thanks a lot. I really appreciate your help. Have a great day!"
+        }
+      ]
+    },
+    {
+      "id": "coffee-order",
+      "title": "Coffee, please",
+      "goal": "Сделать заказ, уточнить состав и вежливо завершить разговор.",
+      "npc": {
+        "name": "Jamie",
+        "role": "barista",
+        "initial": "J"
+      },
+      "reward": {
+        "xp": 48,
+        "coins": 30
+      },
+      "prompts": [
+        {
+          "npc": "Hi! What can I get for you today?",
+          "task": "Закажите напиток и укажите размер.",
+          "targetChunks": [
+            "Could I have",
+            "A medium, please"
+          ],
+          "keywords": [
+            "coffee",
+            "tea",
+            "latte",
+            "medium",
+            "large",
+            "please"
+          ],
+          "exampleAnswer": "Could I have a medium oat latte, please?"
+        },
+        {
+          "npc": "Of course. Would you like regular milk or oat milk?",
+          "task": "Выберите вариант и уточните, есть ли сахар.",
+          "targetChunks": [
+            "I'd prefer",
+            "Does it come with"
+          ],
+          "keywords": [
+            "prefer",
+            "oat",
+            "regular",
+            "milk",
+            "sugar"
+          ],
+          "exampleAnswer": "I'd prefer oat milk. Does it come with any sugar?"
+        },
+        {
+          "npc": "No sugar by default. Your total is five dollars.",
+          "task": "Подтвердите оплату и поблагодарите.",
+          "targetChunks": [
+            "I'll pay by card",
+            "Thank you"
+          ],
+          "keywords": [
+            "pay",
+            "card",
+            "cash",
+            "thank",
+            "great"
+          ],
+          "exampleAnswer": "Great, I'll pay by card. Thank you!"
+        }
+      ]
+    },
+    {
+      "id": "networking",
+      "title": "Meet someone new",
+      "goal": "Представиться, рассказать о своей работе и продолжить знакомство.",
+      "npc": {
+        "name": "Taylor",
+        "role": "conference guest",
+        "initial": "T"
+      },
+      "reward": {
+        "xp": 58,
+        "coins": 36
+      },
+      "prompts": [
+        {
+          "npc": "Hi, I don't think we've met. What brings you to this event?",
+          "task": "Представьтесь и объясните, почему вы пришли.",
+          "targetChunks": [
+            "I'm here to",
+            "I work in"
+          ],
+          "keywords": [
+            "here",
+            "work",
+            "event",
+            "learn",
+            "meet",
+            "people"
+          ],
+          "exampleAnswer": "Hi, I'm Anna. I work in education, and I'm here to meet people working on language projects."
+        },
+        {
+          "npc": "That sounds interesting. What are you working on at the moment?",
+          "task": "Кратко опишите текущий проект.",
+          "targetChunks": [
+            "At the moment",
+            "The project helps"
+          ],
+          "keywords": [
+            "project",
+            "working",
+            "helps",
+            "students",
+            "platform",
+            "building"
+          ],
+          "exampleAnswer": "At the moment, I'm building a project that helps students practise real conversations."
+        },
+        {
+          "npc": "I'd love to hear more. Shall we exchange contacts?",
+          "task": "Согласитесь и предложите способ связи.",
+          "targetChunks": [
+            "That would be great",
+            "You can reach me"
+          ],
+          "keywords": [
+            "great",
+            "contact",
+            "email",
+            "reach",
+            "connect",
+            "linkedin"
+          ],
+          "exampleAnswer": "That would be great. You can reach me by email, or we can connect on LinkedIn."
+        }
+      ]
+    },
+    {
+      "id": "hotel-checkin",
+      "title": "Hotel check-in",
+      "goal": "Заселиться в отель, уточнить детали и решить небольшую проблему.",
+      "npc": {
+        "name": "Morgan",
+        "role": "receptionist",
+        "initial": "M"
+      },
+      "reward": {
+        "xp": 60,
+        "coins": 38
+      },
+      "prompts": [
+        {
+          "npc": "Good evening. Do you have a reservation with us?",
+          "task": "Подтвердите бронь и назовите имя.",
+          "targetChunks": [
+            "I have a reservation",
+            "It's under the name"
+          ],
+          "keywords": [
+            "reservation",
+            "booking",
+            "name",
+            "under",
+            "room"
+          ],
+          "exampleAnswer": "Good evening. I have a reservation, and it's under the name Petrova."
+        },
+        {
+          "npc": "I found it. Breakfast is served from seven to ten. Is there anything else you need?",
+          "task": "Уточните, включён ли завтрак в стоимость.",
+          "targetChunks": [
+            "Is breakfast included",
+            "Could you confirm"
+          ],
+          "keywords": [
+            "breakfast",
+            "included",
+            "price",
+            "confirm",
+            "cost"
+          ],
+          "exampleAnswer": "Could you confirm whether breakfast is included in the room price?"
+        },
+        {
+          "npc": "Yes, it is included. Your room is on the fourth floor.",
+          "task": "Сообщите, что вам нужен тихий номер, и вежливо попросите проверить.",
+          "targetChunks": [
+            "I was hoping for",
+            "Could you check"
+          ],
+          "keywords": [
+            "quiet",
+            "room",
+            "check",
+            "floor",
+            "noise"
+          ],
+          "exampleAnswer": "I was hoping for a quiet room. Could you check whether this one is away from the lift?"
         }
       ]
     }
