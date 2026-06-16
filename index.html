@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Linguapolis — симулятор английских диалогов с аналитикой прогресса.">
+  <title>Linguapolis — разговорный английский</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="ambient ambient-one"></div>
+  <div class="ambient ambient-two"></div>
+
+  <div id="toast-region" class="toast-region" aria-live="polite"></div>
+
+  <section id="welcome-view" class="welcome-view">
+    <div class="welcome-shell">
+      <header class="welcome-header">
+        <div class="brand-mark" aria-hidden="true">L</div>
+        <div>
+          <p class="eyebrow">LINGUAPOLIS</p>
+          <h1>Разговорная практика<br>без школьного вайба.</h1>
+          <p class="welcome-copy">Выберите стиль общения. Ответы будут оцениваться по четырём метрикам, а прогресс — сохраняться автоматически.</p>
+        </div>
+      </header>
+      <div id="character-grid" class="character-grid" aria-label="Выбор персонажа"></div>
+      <p class="storage-note">Демо хранит прогресс и ответы в базе IndexedDB внутри этого браузера.</p>
+    </div>
+  </section>
+
+  <div id="app-shell" class="app-shell is-hidden">
+    <header class="topbar">
+      <button class="brand-button" type="button" data-action="home" data-track="home">
+        <span class="brand-mark small">L</span>
+        <span><strong>Linguapolis</strong><small>conversation lab</small></span>
+      </button>
+
+      <nav class="main-nav" aria-label="Основная навигация">
+        <button class="nav-button is-active" type="button" data-view="lesson" data-track="nav_lesson">Домой</button>
+        <button class="nav-button" type="button" data-view="analytics" data-track="nav_analytics">Аналитика</button>
+        <button class="nav-button" type="button" data-view="admin" data-track="nav_admin">Админка</button>
+      </nav>
+
+      <div class="topbar-actions">
+        <div class="compact-level"><span>Уровень</span><strong id="top-level">1</strong></div>
+        <button class="icon-button" type="button" data-action="logout" data-track="logout" aria-label="Выйти из профиля" title="Выйти">↗</button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <aside class="profile-column">
+        <section class="surface profile-card">
+          <div id="profile-avatar" class="profile-avatar"></div>
+          <p class="eyebrow">ВАШ ПРОФИЛЬ</p>
+          <h2 id="profile-name">—</h2>
+          <p id="profile-description" class="muted">—</p>
+
+          <div class="level-row">
+            <div><span>Уровень</span><strong id="profile-level">1</strong></div>
+            <div><span>Монеты</span><strong id="profile-coins">0</strong></div>
+          </div>
+          <div class="xp-block">
+            <div class="row-between"><span>Опыт</span><span id="xp-label">0 / 100 XP</span></div>
+            <div class="progress-track"><div id="xp-progress" class="progress-value"></div></div>
+          </div>
+        </section>
+
+        <section class="surface skills-card">
+          <div class="section-heading compact">
+            <div><p class="eyebrow">НАВЫКИ</p><h3>Текущий уровень</h3></div>
+            <span id="average-skill" class="score-chip">0</span>
+          </div>
+          <div id="skills-list" class="skills-list"></div>
+          <div id="next-unlock" class="next-unlock"></div>
+        </section>
+      </aside>
+
+      <section class="content-column">
+        <section id="lesson-view" class="view-panel is-active">
+          <div class="lesson-heading">
+            <div>
+              <p id="lesson-kicker" class="eyebrow">УРОК 01</p>
+              <h1 id="lesson-title">—</h1>
+              <p id="lesson-goal" class="muted">—</p>
+            </div>
+            <div id="lesson-step" class="lesson-step">1 / 3</div>
+          </div>
+
+          <section class="surface dialogue-card">
+            <div class="dialogue-topline">
+              <div class="npc-identity">
+                <div id="npc-avatar" class="npc-avatar">A</div>
+                <div><strong id="npc-name">Alex</strong><span id="npc-role">собеседник</span></div>
+              </div>
+              <span class="live-chip"><i></i> диалог</span>
+            </div>
+            <div id="chat-log" class="chat-log" aria-live="polite"></div>
+          </section>
+
+          <section class="surface answer-card">
+            <div class="answer-prompt">
+              <div>
+                <p class="eyebrow">ВАША РЕПЛИКА</p>
+                <h3 id="prompt-task">—</h3>
+              </div>
+              <span id="answer-counter">0 / 280</span>
+            </div>
+            <div id="target-chunks" class="target-chunks"></div>
+            <label class="sr-only" for="answer-input">Ответ на английском</label>
+            <textarea id="answer-input" maxlength="280" placeholder="Write your answer in English…"></textarea>
+            <div class="answer-actions">
+              <p class="privacy-note">Мы сохраняем ответ для вашей аналитики.</p>
+              <button id="submit-answer" class="primary-button" type="button" data-track="submit_answer">Отправить ответ <span>→</span></button>
+            </div>
+          </section>
+
+          <section id="evaluation-panel" class="surface evaluation-panel is-hidden" aria-live="polite">
+            <div class="evaluation-score">
+              <span id="overall-score">0</span><small>/100</small>
+            </div>
+            <div class="evaluation-content">
+              <div class="section-heading compact"><div><p class="eyebrow">ОЦЕНКА ОТВЕТА</p><h3 id="evaluation-title">—</h3></div></div>
+              <div id="metric-grid" class="metric-grid"></div>
+              <p id="feedback-text" class="feedback-text"></p>
+              <button id="next-dialogue" class="secondary-button" type="button" data-track="next_dialogue">Продолжить диалог →</button>
+            </div>
+          </section>
+
+          <section class="finish-strip">
+            <div>
+              <strong id="finish-title">Завершение урока</strong>
+              <p id="finish-copy">Ответьте на все реплики, чтобы получить итог и награду.</p>
+            </div>
+            <button id="finish-lesson" class="finish-button" type="button" disabled data-track="finish_lesson">Завершить урок</button>
+          </section>
+        </section>
+
+        <section id="analytics-view" class="view-panel">
+          <div class="page-heading"><div><p class="eyebrow">ПРОГРЕСС</p><h1>Аналитика обучения</h1><p class="muted">Результаты строятся по сохранённым ответам.</p></div></div>
+          <div id="analytics-summary" class="summary-grid"></div>
+          <section class="surface chart-card">
+            <div class="section-heading"><div><p class="eyebrow">МЕТРИКИ</p><h3>Средняя оценка ответов</h3></div></div>
+            <div id="analytics-bars" class="analytics-bars"></div>
+          </section>
+          <section class="surface table-card">
+            <div class="section-heading"><div><p class="eyebrow">ИСТОРИЯ</p><h3>Последние ответы</h3></div></div>
+            <div class="table-wrap"><table><thead><tr><th>Дата</th><th>Урок</th><th>Ответ</th><th>Оценка</th></tr></thead><tbody id="answers-table"></tbody></table></div>
+          </section>
+        </section>
+
+        <section id="admin-view" class="view-panel">
+          <div class="page-heading"><div><p class="eyebrow">CONTROL ROOM</p><h1>Админка сервиса</h1><p class="muted">Локальный MVP: данные видны только в текущем браузере.</p></div><span class="demo-badge">LOCAL ADMIN</span></div>
+          <div id="admin-summary" class="summary-grid"></div>
+          <section class="admin-grid">
+            <div class="surface admin-card">
+              <div class="section-heading"><div><p class="eyebrow">ПРОФИЛЬ</p><h3>Изменить навыки</h3></div></div>
+              <form id="skills-form" class="admin-form"></form>
+              <button id="save-skills" class="primary-button" type="button" data-track="admin_save_skills">Сохранить значения</button>
+            </div>
+            <div class="surface admin-card">
+              <div class="section-heading"><div><p class="eyebrow">ДАННЫЕ</p><h3>Управление базой</h3></div></div>
+              <div class="admin-actions">
+                <button id="export-data" class="secondary-button" type="button" data-track="admin_export">Экспорт JSON</button>
+                <button id="clear-events" class="secondary-button" type="button" data-track="admin_clear_events">Очистить логи</button>
+                <button id="reset-service" class="danger-button" type="button" data-track="admin_reset">Сбросить все данные</button>
+              </div>
+            </div>
+          </section>
+          <section class="surface table-card">
+            <div class="section-heading admin-log-heading">
+              <div><p class="eyebrow">ACTION LOG</p><h3>Журнал действий</h3></div>
+              <select id="event-filter" aria-label="Фильтр событий"><option value="all">Все события</option><option value="answer_submitted">Ответы</option><option value="lesson_completed">Уроки</option><option value="view_changed">Переходы</option><option value="ui_click">Клики</option></select>
+            </div>
+            <div class="table-wrap"><table><thead><tr><th>Время</th><th>Событие</th><th>Детали</th></tr></thead><tbody id="events-table"></tbody></table></div>
+          </section>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="lesson-dialog" class="modal">
+    <div class="modal-inner">
+      <button class="modal-close" type="button" data-action="close-modal" aria-label="Закрыть">×</button>
+      <p class="eyebrow">УРОК ЗАВЕРШЁН</p>
+      <h2 id="modal-title">Отличная работа</h2>
+      <p id="modal-copy" class="muted">—</p>
+      <div id="modal-results" class="modal-results"></div>
+      <div id="modal-unlocks" class="modal-unlocks"></div>
+      <div class="modal-actions">
+        <button class="secondary-button" type="button" data-action="close-modal">Вернуться</button>
+        <button id="confirm-finish" class="primary-button" type="button" data-track="confirm_finish">Получить награду и продолжить</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script src="script.js"></script>
+</body>
+</html>
