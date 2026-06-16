@@ -1,9 +1,11 @@
+import { AuthService, AUTH_EVENT } from "./auth.js";
+
 "use strict";
 
 const DATA_URL = "data.json";
 const DB_NAME = "linguapolis_db_v2";
 const DB_VERSION = 1;
-const APP_VERSION = 3;
+const APP_VERSION = 4;
 const SESSION_ID = crypto.randomUUID ? crypto.randomUUID() : `session-${Date.now()}`;
 
 const KEYS = {
@@ -29,6 +31,7 @@ const ACCENTS = {
 
 let APP_DATA = null;
 let database = null;
+let currentStudent = null;
 let currentCharacter = null;
 let playerState = null;
 let currentView = "lesson";
@@ -162,13 +165,189 @@ async function boot() {
   updateConnectionStatus();
   renderCharacterGrid();
 
-  const selectedId = safeStorageGet(KEYS.selectedCharacter);
-  if (selectedId) {
-    const character = APP_DATA.characters.find(item => item.id === selectedId);
-    if (character) await enterProfile(character, true);
+  const authState = await AuthService.init();
+  renderAuthAvailability(authState);
+  if (authState.student) {
+    await startStudentSession(authState.student, true);
+  } else {
+    showAuthView();
   }
 
-  await logEvent("app_boot", { databaseMode: database.mode, appVersion: APP_VERSION });
+  await logEvent("app_boot", {
+    databaseMode: database.mode,
+    appVersion: APP_VERSION,
+    authMode: authState.mode
+  });
+}
+
+
+function renderAuthAvailability(authState) {
+  const note = document.getElementById("auth-config-note");
+  const guestButton = document.getElementById("guest-login");
+  if (!note || !guestButton) return;
+
+  if (!authState.configured) {
+    note.textContent = "Регистрация пока работает только после подключения Supabase. До этого можно открыть демо-режим.";
+    guestButton.textContent = "Продолжить в демо-режиме";
+    return;
+  }
+
+  if (authState.mode === "unavailable") {
+    note.textContent = "Сервис регистрации временно недоступен. Проверьте интернет или настройки Supabase.";
+    guestButton.textContent = "Открыть демо без аккаунта";
+    return;
+  }
+
+  note.textContent = "После регистрации на почту может прийти письмо для подтверждения аккаунта.";
+  guestButton.textContent = "Открыть демо без аккаунта";
+}
+
+function showAuthView(message = "") {
+  currentStudent = null;
+  currentCharacter = null;
+  playerState = null;
+  document.getElementById("auth-view")?.classList.remove("is-hidden");
+  document.getElementById("welcome-view")?.classList.add("is-hidden");
+  document.getElementById("app-shell")?.classList.add("is-hidden");
+  setAuthMessage(message, message ? "info" : "");
+}
+
+async function startStudentSession(student, restored = false) {
+  if (!student) return showAuthView();
+  currentStudent = student;
+  updateStudentUi();
+  document.getElementById("auth-view")?.classList.add("is-hidden");
+  document.getElementById("welcome-view")?.classList.remove("is-hidden");
+  document.getElementById("app-shell")?.classList.add("is-hidden");
+  renderCharacterGrid();
+
+  let selectedId = safeStorageGet(scopedKey(KEYS.selectedCharacter));
+  if (!selectedId && currentStudent?.isGuest) {
+    selectedId = safeStorageGet(KEYS.selectedCharacter);
+    if (selectedId) safeStorageSet(scopedKey(KEYS.selectedCharacter), selectedId);
+  }
+  if (selectedId) {
+    const character = APP_DATA.characters.find(item => item.id === selectedId);
+    if (character) await enterProfile(character, restored);
+  }
+}
+
+function updateStudentUi() {
+  const student = currentStudent;
+  const name = student?.name || "Студент";
+  setText("student-name", name);
+  setText("student-initial", name.trim().charAt(0).toUpperCase() || "S");
+
+  const adminButton = document.getElementById("admin-nav-button");
+  if (adminButton) adminButton.classList.toggle("is-hidden", !canAccessAdmin());
+}
+
+function canAccessAdmin() {
+  return Boolean(currentStudent?.role === "teacher" || currentStudent?.isGuest);
+}
+
+function scopedKey(baseKey) {
+  const scope = currentStudent?.id || "guest";
+  return `${baseKey}:${scope}`;
+}
+
+function currentStudentId() {
+  return currentStudent?.id || "guest";
+}
+
+function recordBelongsToCurrentStudent(record) {
+  return (record?.studentId || "guest") === currentStudentId();
+}
+
+function setAuthTab(tab) {
+  const selected = tab === "register" ? "register" : "login";
+  document.querySelectorAll("[data-auth-tab]").forEach(button => {
+    const active = button.dataset.authTab === selected;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-selected", String(active));
+  });
+  document.querySelectorAll(".auth-panel").forEach(panel => {
+    panel.classList.toggle("is-active", panel.id === `auth-${selected}-panel`);
+  });
+  setAuthMessage("");
+}
+
+function setAuthMessage(message, type = "info") {
+  const node = document.getElementById("auth-message");
+  if (!node) return;
+  node.textContent = message;
+  node.className = `auth-message${message ? ` is-${type}` : ""}`;
+}
+
+function setAuthFormBusy(form, busy, label) {
+  const button = form?.querySelector("button[type='submit']");
+  if (!button) return;
+  if (!button.dataset.defaultLabel) button.dataset.defaultLabel = button.innerHTML;
+  button.disabled = busy;
+  button.classList.toggle("is-loading", busy);
+  button.innerHTML = busy ? label : button.dataset.defaultLabel;
+}
+
+async function handleLogin(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const email = document.getElementById("login-email").value.trim();
+  const password = document.getElementById("login-password").value;
+  setAuthFormBusy(form, true, "Входим…");
+  setAuthMessage("");
+  try {
+    const student = await AuthService.signIn({ email, password });
+    await startStudentSession(student);
+    await logEvent("student_signed_in", { authMode: AuthService.getMode() });
+  } catch (error) {
+    console.error("Login failed", error);
+    setAuthMessage(humanizeAuthError(error), "error");
+  } finally {
+    setAuthFormBusy(form, false, "");
+  }
+}
+
+async function handleRegistration(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const name = document.getElementById("register-name").value.trim();
+  const email = document.getElementById("register-email").value.trim();
+  const password = document.getElementById("register-password").value;
+  const classCode = document.getElementById("register-class-code").value.trim();
+
+  if (name.length < 2) {
+    setAuthMessage("Укажите имя минимум из двух символов.", "error");
+    return;
+  }
+
+  setAuthFormBusy(form, true, "Создаём аккаунт…");
+  setAuthMessage("");
+  try {
+    const result = await AuthService.signUp({ name, email, password, classCode });
+    if (result.needsEmailConfirmation) {
+      setAuthTab("login");
+      document.getElementById("login-email").value = email;
+      setAuthMessage("Аккаунт создан. Откройте письмо от Linguapolis, подтвердите email и затем войдите.", "success");
+    } else if (result.student) {
+      await startStudentSession(result.student);
+      await logEvent("student_registered", { classCode: classCode || null });
+    }
+  } catch (error) {
+    console.error("Registration failed", error);
+    setAuthMessage(humanizeAuthError(error), "error");
+  } finally {
+    setAuthFormBusy(form, false, "");
+  }
+}
+
+function humanizeAuthError(error) {
+  const message = String(error?.message || "Не удалось выполнить действие.");
+  if (/invalid login credentials/i.test(message)) return "Неверный email или пароль.";
+  if (/email not confirmed/i.test(message)) return "Сначала подтвердите email по ссылке из письма.";
+  if (/already registered|already exists/i.test(message)) return "Аккаунт с таким email уже существует. Попробуйте войти.";
+  if (/password/i.test(message) && /6/i.test(message)) return "Пароль должен содержать минимум 6 символов.";
+  if (/rate limit/i.test(message)) return "Слишком много попыток. Подождите немного и попробуйте снова.";
+  return message;
 }
 
 async function loadAppData() {
@@ -213,6 +392,22 @@ function validateAppData(data) {
 }
 
 function bindGlobalEvents() {
+  document.querySelectorAll("[data-auth-tab]").forEach(button => {
+    button.addEventListener("click", () => setAuthTab(button.dataset.authTab));
+  });
+  document.getElementById("login-form")?.addEventListener("submit", handleLogin);
+  document.getElementById("register-form")?.addEventListener("submit", handleRegistration);
+  document.getElementById("guest-login")?.addEventListener("click", async () => {
+    const student = AuthService.continueAsGuest();
+    await startStudentSession(student);
+    await logEvent("guest_session_started", {});
+  });
+  window.addEventListener(AUTH_EVENT, event => {
+    const student = event.detail?.student || null;
+    if (student && currentStudent?.id !== student.id) startStudentSession(student, true);
+    if (!student && currentStudent) showAuthView();
+  });
+
   document.addEventListener("click", async event => {
     const tracked = event.target.closest("[data-track]");
     if (tracked) {
@@ -287,11 +482,21 @@ function bindGlobalEvents() {
 
 function getProfiles() {
   if (!storageAvailable()) return {};
-  return safeParseJson(safeStorageGet(KEYS.profiles), {});
+  const scoped = safeStorageGet(scopedKey(KEYS.profiles));
+  if (scoped) return safeParseJson(scoped, {});
+
+  if (currentStudent?.isGuest) {
+    const legacy = safeStorageGet(KEYS.profiles);
+    if (legacy) {
+      safeStorageSet(scopedKey(KEYS.profiles), legacy);
+      return safeParseJson(legacy, {});
+    }
+  }
+  return {};
 }
 
 function saveProfiles(profiles) {
-  safeStorageSet(KEYS.profiles, JSON.stringify(profiles));
+  safeStorageSet(scopedKey(KEYS.profiles), JSON.stringify(profiles));
 }
 
 function createProfile(character) {
@@ -348,6 +553,27 @@ function normalizeProfile(profile, character) {
   };
 }
 
+
+function characterIconSvg(iconId = "studio") {
+  const commonStart = '<svg class="avatar-svg" viewBox="0 0 64 64" aria-hidden="true" focusable="false">';
+  const commonEnd = '</svg>';
+  const icons = {
+    studio: '<path fill="currentColor" d="M18 53c1-11 7-17 14-17s13 6 14 17H18Z"/><circle cx="32" cy="24" r="10" fill="currentColor"/><path d="M21 23c1-10 7-15 15-13 6 1 9 7 8 13-5-4-16-4-23 0Z" fill="currentColor"/><path d="M24 15c-4 1-7-1-8-4 5-2 9-1 12 2" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>',
+    product: '<path fill="currentColor" d="M17 54c1-11 7-18 15-18s14 7 15 18H17Z"/><circle cx="32" cy="23" r="10" fill="currentColor"/><path d="M21 21c1-8 5-12 12-12 7 0 11 4 12 11-7-2-15-1-24 1Z" fill="currentColor"/><path d="M22 24h8m4 0h8m-12 0h4" fill="none" stroke="var(--character-color)" stroke-width="2.2" stroke-linecap="round"/>',
+    global: '<path d="M18 54c1-11 7-18 14-18s13 7 14 18H18Z" fill="currentColor"/><circle cx="32" cy="24" r="9" fill="currentColor"/><path d="M19 30c-2-12 3-22 13-22s15 10 13 22c-3-8-6-13-13-13s-10 5-13 13Z" fill="currentColor"/><path d="M20 31c4 7 20 7 24 0" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>',
+    travel: '<path fill="currentColor" d="M17 54c1-11 7-18 15-18s14 7 15 18H17Z"/><circle cx="32" cy="24" r="10" fill="currentColor"/><path d="M20 20c2-8 7-12 14-11 5 1 9 5 10 10-8-2-16-2-24 1Z" fill="currentColor"/><path d="M19 18h26" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><path d="M40 18c5 0 8 1 10 4-4 1-8 0-12-2" fill="currentColor"/>',
+    academic: '<path fill="currentColor" d="M17 54c1-11 7-18 15-18s14 7 15 18H17Z"/><circle cx="32" cy="24" r="10" fill="currentColor"/><circle cx="32" cy="10" r="6" fill="currentColor"/><path d="M21 22c1-8 5-12 11-12 7 0 11 4 12 12-7-3-15-3-23 0Z" fill="currentColor"/><path d="M22 25h8m4 0h8m-12 0h4" fill="none" stroke="var(--character-color)" stroke-width="2.2" stroke-linecap="round"/>',
+    founder: '<path fill="currentColor" d="M16 54c2-12 8-18 16-18s14 6 16 18H16Z"/><circle cx="32" cy="23" r="10" fill="currentColor"/><path d="M21 21c2-9 7-13 14-12 5 1 8 4 10 10-8-2-16-1-24 2Z" fill="currentColor"/><path d="m25 39 7 7 7-7" fill="none" stroke="var(--character-color)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>'
+  };
+  return commonStart + (icons[iconId] || icons.studio) + commonEnd;
+}
+
+function npcIconSvg(name = "") {
+  const variants = ["product", "travel", "founder", "studio", "academic", "global"];
+  const hash = [...String(name)].reduce((total, char) => total + char.charCodeAt(0), 0);
+  return characterIconSvg(variants[hash % variants.length]);
+}
+
 function renderCharacterGrid() {
   const profiles = getProfiles();
   const grid = document.getElementById("character-grid");
@@ -363,7 +589,7 @@ function renderCharacterGrid() {
     card.style.setProperty("--character-tint", tint);
     card.dataset.track = `select_character_${character.id}`;
     card.innerHTML = `
-      <span class="character-avatar">${escapeHtml(character.initials)}</span>
+      <span class="character-avatar" aria-hidden="true">${characterIconSvg(character.icon || character.id)}</span>
       <span class="character-role">${escapeHtml(character.role)}</span>
       <h2>${escapeHtml(character.name)}</h2>
       <p>${escapeHtml(character.description)}</p>
@@ -379,7 +605,7 @@ async function enterProfile(character, restored = false) {
   const profiles = getProfiles();
   playerState = normalizeProfile(profiles[character.id], character);
   ensureLessonSession();
-  safeStorageSet(KEYS.selectedCharacter, character.id);
+  safeStorageSet(scopedKey(KEYS.selectedCharacter), character.id);
   saveCurrentProfile();
 
   document.getElementById("welcome-view").classList.add("is-hidden");
@@ -449,7 +675,7 @@ function renderProfile() {
   setText("average-skill", Math.round(average));
 
   const avatar = document.getElementById("profile-avatar");
-  avatar.textContent = currentCharacter.initials;
+  avatar.innerHTML = characterIconSvg(currentCharacter.icon || currentCharacter.id);
 
   const skillsList = document.getElementById("skills-list");
   skillsList.innerHTML = Object.entries(SKILLS).map(([key, label]) => {
@@ -499,7 +725,7 @@ function renderLesson() {
   setText("lesson-goal", lesson.goal);
   setText("npc-name", lesson.npc.name);
   setText("npc-role", lesson.npc.role);
-  setText("npc-avatar", lesson.npc.initial);
+  document.getElementById("npc-avatar").innerHTML = npcIconSvg(lesson.npc.name);
 
   const displayedStep = Math.min(session.promptIndex + 1, lesson.prompts.length);
   setText("lesson-step", `${displayedStep} / ${lesson.prompts.length}`);
@@ -703,6 +929,9 @@ async function submitAnswer() {
     timestamp: new Date().toISOString(),
     sessionId: SESSION_ID,
     lessonSessionId: session.id,
+    studentId: currentStudentId(),
+    studentName: currentStudent?.name || "Демо-студент",
+    studentEmail: currentStudent?.email || "",
     characterId: currentCharacter.id,
     characterName: currentCharacter.name,
     lessonId: lesson.id,
@@ -986,6 +1215,10 @@ function updateStreak() {
 }
 
 async function switchView(view, shouldLog = true) {
+  if (view === "admin" && !canAccessAdmin()) {
+    toast("Доступ только преподавателю", "Студенты видят уроки и личную аналитику, но не админку.");
+    return;
+  }
   if (!document.getElementById(`${view}-view`)) return;
   currentView = view;
   document.querySelectorAll(".view-panel").forEach(panel => panel.classList.toggle("is-active", panel.id === `${view}-view`));
@@ -1003,7 +1236,7 @@ async function switchView(view, shouldLog = true) {
 
 async function renderAnalytics() {
   const allAnswers = await database.getAll("answers");
-  const answers = allAnswers.filter(answer => answer.characterId === currentCharacter.id).sort(byNewest);
+  const answers = allAnswers.filter(answer => recordBelongsToCurrentStudent(answer) && answer.characterId === currentCharacter.id).sort(byNewest);
   const averages = aggregateMetrics(answers);
   const trend = calculateTrend(answers);
 
@@ -1115,12 +1348,13 @@ async function renderAdmin() {
   document.getElementById("admin-answers-table").innerHTML = visibleAnswers.length ? visibleAnswers.slice(0, 100).map(answer => `
     <tr>
       <td>${formatDate(answer.timestamp, true)}</td>
+      <td>${escapeHtml(answer.studentName || answer.studentEmail || "Демо-студент")}</td>
       <td>${escapeHtml(answer.characterName || APP_DATA.characters.find(item => item.id === answer.characterId)?.name || "—")}</td>
       <td>${escapeHtml(answer.lessonTitle || answer.lessonId || "—")}</td>
       <td>${escapeHtml(truncate(answer.text, 120))}</td>
       <td class="score-cell">${Math.round(Number(answer.metrics?.overall) || 0)}</td>
     </tr>
-  `).join("") : `<tr><td colspan="5" class="empty-row">Сохранённых ответов пока нет.</td></tr>`;
+  `).join("") : `<tr><td colspan="6" class="empty-row">Сохранённых ответов пока нет.</td></tr>`;
 }
 
 async function saveAdminSkills() {
@@ -1152,9 +1386,11 @@ async function exportDatabase() {
 
 async function exportAnswersCsv() {
   const answers = (await database.getAll("answers")).sort(byNewest);
-  const header = ["timestamp", "profile", "lesson", "prompt_index", "answer", "relevance", "vocabulary", "structure", "fluency", "overall"];
+  const header = ["timestamp", "student", "email", "profile", "lesson", "prompt_index", "answer", "relevance", "vocabulary", "structure", "fluency", "overall"];
   const rows = answers.map(answer => [
     answer.timestamp,
+    answer.studentName || "Демо-студент",
+    answer.studentEmail || "",
     answer.characterName || answer.characterId,
     answer.lessonTitle || answer.lessonId,
     answer.promptIndex,
@@ -1194,6 +1430,9 @@ async function importDatabase(event) {
         ...answer,
         id: answer.id || (crypto.randomUUID ? crypto.randomUUID() : `answer-${Date.now()}-${Math.random()}`),
         timestamp: validIsoDate(answer.timestamp) ? answer.timestamp : new Date().toISOString(),
+        studentId: answer.studentId || currentStudentId(),
+        studentName: answer.studentName || currentStudent?.name || "Демо-студент",
+        studentEmail: answer.studentEmail || currentStudent?.email || "",
         text: String(answer.text).slice(0, 280)
       });
     }
@@ -1203,6 +1442,9 @@ async function importDatabase(event) {
       await database.add("events", {
         ...eventWithoutId,
         timestamp: validIsoDate(importedEvent.timestamp) ? importedEvent.timestamp : new Date().toISOString(),
+        studentId: importedEvent.studentId || currentStudentId(),
+        studentName: importedEvent.studentName || currentStudent?.name || "Демо-студент",
+        studentEmail: importedEvent.studentEmail || currentStudent?.email || "",
         eventName: String(importedEvent.eventName || "imported_event").slice(0, 80)
       });
     }
@@ -1260,10 +1502,8 @@ async function resetService() {
   if (!confirm("Удалить профили, ответы и журнал действий в этом браузере? Это действие необратимо.")) return;
   await database.clear("answers");
   await database.clear("events");
-  safeStorageRemove(KEYS.profiles);
-  safeStorageRemove(KEYS.selectedCharacter);
-  safeStorageRemove(database.fallbackKey("answers"));
-  safeStorageRemove(database.fallbackKey("events"));
+  safeStorageRemove(scopedKey(KEYS.profiles));
+  safeStorageRemove(scopedKey(KEYS.selectedCharacter));
   currentCharacter = null;
   playerState = null;
   document.getElementById("app-shell").classList.add("is-hidden");
@@ -1275,12 +1515,15 @@ async function resetService() {
 async function logout() {
   flushDraftSave();
   await logEvent("logout", { characterId: currentCharacter?.id });
-  safeStorageRemove(KEYS.selectedCharacter);
   currentCharacter = null;
   playerState = null;
-  document.getElementById("app-shell").classList.add("is-hidden");
-  document.getElementById("welcome-view").classList.remove("is-hidden");
-  renderCharacterGrid();
+  try {
+    await AuthService.signOut();
+  } catch (error) {
+    console.error("Logout failed", error);
+    toast("Не удалось выйти", "Обновите страницу и попробуйте ещё раз.");
+  }
+  showAuthView();
 }
 
 async function logEvent(eventName, payload = {}) {
@@ -1289,6 +1532,9 @@ async function logEvent(eventName, payload = {}) {
     timestamp: new Date().toISOString(),
     eventName,
     sessionId: SESSION_ID,
+    studentId: currentStudentId(),
+    studentName: currentStudent?.name || "Демо-студент",
+    studentEmail: currentStudent?.email || "",
     characterId: currentCharacter?.id || null,
     page: currentView,
     payload

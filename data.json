@@ -12,7 +12,8 @@
         "vocabulary": 34,
         "fluency": 26,
         "accuracy": 24
-      }
+      },
+      "icon": "studio"
     },
     {
       "id": "product",
@@ -26,7 +27,8 @@
         "vocabulary": 30,
         "fluency": 25,
         "accuracy": 30
-      }
+      },
+      "icon": "product"
     },
     {
       "id": "global",
@@ -40,7 +42,8 @@
         "vocabulary": 32,
         "fluency": 24,
         "accuracy": 28
-      }
+      },
+      "icon": "global"
     },
     {
       "id": "travel",
@@ -54,7 +57,8 @@
         "vocabulary": 25,
         "fluency": 31,
         "accuracy": 22
-      }
+      },
+      "icon": "travel"
     },
     {
       "id": "academic",
@@ -68,7 +72,8 @@
         "vocabulary": 35,
         "fluency": 23,
         "accuracy": 34
-      }
+      },
+      "icon": "academic"
     },
     {
       "id": "founder",
@@ -82,7 +87,8 @@
         "vocabulary": 29,
         "fluency": 28,
         "accuracy": 25
-      }
+      },
+      "icon": "founder"
     }
   ],
   "skillMilestones": [
@@ -115,7 +121,8 @@
       "npc": {
         "name": "Alex",
         "role": "your new neighbour",
-        "initial": "A"
+        "initial": "A",
+        "icon": "alex"
       },
       "reward": {
         "xp": 45,
@@ -178,7 +185,8 @@
       "npc": {
         "name": "Sam",
         "role": "project teammate",
-        "initial": "S"
+        "initial": "S",
+        "icon": "sam"
       },
       "reward": {
         "xp": 55,
@@ -241,7 +249,8 @@
       "npc": {
         "name": "Jordan",
         "role": "local resident",
-        "initial": "J"
+        "initial": "J",
+        "icon": "jordan"
       },
       "reward": {
         "xp": 50,
@@ -304,7 +313,8 @@
       "npc": {
         "name": "Jamie",
         "role": "barista",
-        "initial": "J"
+        "initial": "J",
+        "icon": "jamie"
       },
       "reward": {
         "xp": 48,
@@ -369,7 +379,8 @@
       "npc": {
         "name": "Taylor",
         "role": "conference guest",
-        "initial": "T"
+        "initial": "T",
+        "icon": "taylor"
       },
       "reward": {
         "xp": 58,
@@ -436,7 +447,8 @@
       "npc": {
         "name": "Morgan",
         "role": "receptionist",
-        "initial": "M"
+        "initial": "M",
+        "icon": "morgan"
       },
       "reward": {
         "xp": 60,

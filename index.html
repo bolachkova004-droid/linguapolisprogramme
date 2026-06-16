@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Linguapolis — симулятор английских диалогов с аналитикой прогресса.">
+  <meta name="description" content="Linguapolis — симулятор английских диалогов с регистрацией и аналитикой прогресса.">
   <meta name="theme-color" content="#f4f3ef">
   <title>Linguapolis — разговорный английский</title>
-  <link rel="stylesheet" href="style.css?v=3">
+  <link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
   <div class="ambient ambient-one"></div>
@@ -14,7 +14,55 @@
 
   <div id="toast-region" class="toast-region" aria-live="polite"></div>
 
-  <section id="welcome-view" class="welcome-view">
+  <section id="auth-view" class="auth-view">
+    <div class="auth-shell">
+      <div class="auth-intro">
+        <div class="brand-mark auth-brand" aria-hidden="true">L</div>
+        <p class="eyebrow">LINGUAPOLIS</p>
+        <h1>Практика английского,<br>которая помнит ваш прогресс.</h1>
+        <p>Зарегистрируйтесь, чтобы у каждого студента был отдельный вход. После входа выберите персонажа и начните диалог.</p>
+        <div class="auth-points" aria-label="Возможности аккаунта">
+          <span>Личный прогресс</span><span>История ответов</span><span>Доступ по классу</span>
+        </div>
+      </div>
+
+      <section class="auth-card" aria-labelledby="auth-title">
+        <div class="auth-tabs" role="tablist" aria-label="Вход или регистрация">
+          <button id="login-tab" class="auth-tab is-active" type="button" role="tab" aria-selected="true" data-auth-tab="login">Войти</button>
+          <button id="register-tab" class="auth-tab" type="button" role="tab" aria-selected="false" data-auth-tab="register">Регистрация</button>
+        </div>
+
+        <div id="auth-login-panel" class="auth-panel is-active" role="tabpanel" aria-labelledby="login-tab">
+          <p class="eyebrow">ДОБРО ПОЖАЛОВАТЬ</p>
+          <h2 id="auth-title">Вход для студента</h2>
+          <form id="login-form" class="auth-form">
+            <label>Email<input id="login-email" type="email" autocomplete="email" required placeholder="student@example.com"></label>
+            <label>Пароль<input id="login-password" type="password" autocomplete="current-password" minlength="6" required placeholder="Минимум 6 символов"></label>
+            <button class="primary-button auth-submit" type="submit">Войти <span>→</span></button>
+          </form>
+        </div>
+
+        <div id="auth-register-panel" class="auth-panel" role="tabpanel" aria-labelledby="register-tab">
+          <p class="eyebrow">НОВЫЙ АККАУНТ</p>
+          <h2>Регистрация студента</h2>
+          <form id="register-form" class="auth-form">
+            <label>Имя<input id="register-name" type="text" autocomplete="name" maxlength="60" required placeholder="Анна"></label>
+            <label>Email<input id="register-email" type="email" autocomplete="email" required placeholder="student@example.com"></label>
+            <label>Пароль<input id="register-password" type="password" autocomplete="new-password" minlength="6" required placeholder="Минимум 6 символов"></label>
+            <label>Код класса <span class="optional">необязательно</span><input id="register-class-code" type="text" maxlength="30" autocomplete="off" placeholder="ENGLISH-7A"></label>
+            <button class="primary-button auth-submit" type="submit">Создать аккаунт <span>→</span></button>
+          </form>
+        </div>
+
+        <p id="auth-message" class="auth-message" aria-live="polite"></p>
+        <div class="auth-divider"><span>или</span></div>
+        <button id="guest-login" class="secondary-button guest-button" type="button">Продолжить в демо-режиме</button>
+        <p id="auth-config-note" class="auth-config-note">Для настоящей регистрации преподавателю нужно один раз подключить Supabase.</p>
+      </section>
+    </div>
+  </section>
+
+  <section id="welcome-view" class="welcome-view is-hidden">
     <div class="welcome-shell">
       <header class="welcome-header">
         <div class="brand-mark" aria-hidden="true">L</div>
@@ -25,27 +73,31 @@
         </div>
       </header>
       <div id="character-grid" class="character-grid" aria-label="Выбор персонажа"></div>
-      <p class="storage-note">Демо хранит прогресс и ответы только в этом браузере. Оценка ответов приблизительная и работает без искусственного интеллекта.</p>
+      <p class="storage-note">Демо хранит прогресс и ответы в базе IndexedDB внутри этого браузера.</p>
     </div>
   </section>
 
   <div id="app-shell" class="app-shell is-hidden">
     <header class="topbar">
-      <button class="brand-button" type="button" data-action="home" data-track="home" aria-label="Вернуться к уроку">
+      <button class="brand-button" type="button" data-action="home" data-track="home">
         <span class="brand-mark small">L</span>
         <span><strong>Linguapolis</strong><small>conversation lab</small></span>
       </button>
 
       <nav class="main-nav" aria-label="Основная навигация">
-        <button class="nav-button is-active" type="button" data-view="lesson" data-track="nav_lesson" aria-current="page">Урок</button>
+        <button class="nav-button is-active" type="button" data-view="lesson" data-track="nav_lesson">Домой</button>
         <button class="nav-button" type="button" data-view="analytics" data-track="nav_analytics">Аналитика</button>
-        <button class="nav-button" type="button" data-view="admin" data-track="nav_admin">Админка</button>
+        <button id="admin-nav-button" class="nav-button" type="button" data-view="admin" data-track="nav_admin">Админка</button>
       </nav>
 
       <div class="topbar-actions">
+        <div id="student-chip" class="student-chip" title="Текущий пользователь">
+          <span id="student-initial" class="student-initial">S</span>
+          <strong id="student-name">Студент</strong>
+        </div>
         <span id="connection-status" class="connection-status" aria-live="polite">Онлайн</span>
         <div class="compact-level"><span>Уровень</span><strong id="top-level">1</strong></div>
-        <button class="exit-button" type="button" data-action="logout" data-track="logout" aria-label="Выйти из профиля" title="Выйти"><span aria-hidden="true">↗</span><strong>Выйти</strong></button>
+        <button class="exit-button" type="button" data-action="logout" data-track="logout" aria-label="Выйти из аккаунта" title="Выйти"><span aria-hidden="true">↗</span><strong>Выйти</strong></button>
       </div>
     </header>
 
@@ -160,7 +212,7 @@
         </section>
 
         <section id="admin-view" class="view-panel">
-          <div class="page-heading"><div><p class="eyebrow">CONTROL ROOM</p><h1>Админка сервиса</h1><p class="muted">Локальный MVP: данные видны только в текущем браузере. Эта админка не защищена авторизацией.</p></div><span class="demo-badge">LOCAL ADMIN</span></div>
+          <div class="page-heading"><div><p class="eyebrow">CONTROL ROOM</p><h1>Админка сервиса</h1><p class="muted">В настоящем режиме вкладка доступна только преподавателям из config.js.</p></div><span class="demo-badge">TEACHER</span></div>
           <div id="admin-summary" class="summary-grid"></div>
           <section class="admin-grid">
             <div class="surface admin-card">
@@ -185,7 +237,7 @@
               <div><p class="eyebrow">ANSWER DATABASE</p><h3>База ответов</h3></div>
               <select id="answer-profile-filter" aria-label="Фильтр ответов по профилю"><option value="all">Все профили</option></select>
             </div>
-            <div class="table-wrap"><table><thead><tr><th>Время</th><th>Профиль</th><th>Урок</th><th>Ответ</th><th>Score</th></tr></thead><tbody id="admin-answers-table"></tbody></table></div>
+            <div class="table-wrap"><table><thead><tr><th>Время</th><th>Студент</th><th>Персонаж</th><th>Урок</th><th>Ответ</th><th>Score</th></tr></thead><tbody id="admin-answers-table"></tbody></table></div>
           </section>
           <section class="surface table-card">
             <div class="section-heading admin-log-heading">
@@ -214,8 +266,7 @@
     </div>
   </dialog>
 
-  <script id="app-data" type="application/json">{"characters":[{"id":"studio","name":"Maya","role":"Creative lead","initials":"MY","accent":"violet","description":"Живой small talk, идеи и уверенная самопрезентация.","startingStats":{"confidence":28,"vocabulary":34,"fluency":26,"accuracy":24}},{"id":"product","name":"Noah","role":"Product strategist","initials":"NH","accent":"blue","description":"Рабочие созвоны, ясные решения и спокойная аргументация.","startingStats":{"confidence":30,"vocabulary":30,"fluency":25,"accuracy":30}},{"id":"global","name":"Amina","role":"Global consultant","initials":"AM","accent":"sand","description":"Деловое общение, нетворкинг и точные формулировки.","startingStats":{"confidence":31,"vocabulary":32,"fluency":24,"accuracy":28}},{"id":"travel","name":"Leo","role":"City explorer","initials":"LE","accent":"green","description":"Путешествия, новые знакомства и естественные истории.","startingStats":{"confidence":34,"vocabulary":25,"fluency":31,"accuracy":22}},{"id":"academic","name":"Elena","role":"Language mentor","initials":"EL","accent":"rose","description":"Структурная речь, объяснения и академическая точность.","startingStats":{"confidence":27,"vocabulary":35,"fluency":23,"accuracy":34}},{"id":"founder","name":"Kai","role":"Startup founder","initials":"KI","accent":"orange","description":"Питчи, переговоры и энергичное профессиональное общение.","startingStats":{"confidence":35,"vocabulary":29,"fluency":28,"accuracy":25}}],"skillMilestones":[{"value":25,"label":"Foundation","unlock":"Персональные подсказки"},{"value":50,"label":"Flow","unlock":"Диалоги без подсказок"},{"value":75,"label":"Confidence","unlock":"Сложные сценарии"},{"value":100,"label":"Mastery","unlock":"Экспертный режим"}],"lessons":[{"id":"neighbors","title":"New in the building","goal":"Познакомиться с соседями и поддержать короткий разговор.","npc":{"name":"Alex","role":"your new neighbour","initial":"A"},"reward":{"xp":45,"coins":30},"prompts":[{"npc":"Hey! I don't think we've met before. Are you new here?","task":"Поздоровайтесь и скажите, что недавно переехали.","targetChunks":["Nice to meet you","I just moved in"],"keywords":["new","moved","meet","building"],"exampleAnswer":"Hi! Nice to meet you. Yes, I just moved into the building a few days ago."},{"npc":"Welcome! How are you finding the neighbourhood so far?","task":"Поделитесь первым впечатлением и добавьте одну деталь.","targetChunks":["So far","I really like"],"keywords":["like","quiet","friendly","area","neighbourhood"],"exampleAnswer":"So far, I really like the neighbourhood because it feels quiet and friendly."},{"npc":"A few of us are getting coffee on Saturday. Would you like to join?","task":"Примите приглашение и уточните время.","targetChunks":["I'd love to","What time"],"keywords":["love","join","time","saturday","coffee"],"exampleAnswer":"I'd love to join you for coffee on Saturday. What time are you meeting?"}]},{"id":"team-call","title":"A quick team sync","goal":"Уточнить статус задачи и предложить следующий шаг.","npc":{"name":"Sam","role":"project teammate","initial":"S"},"reward":{"xp":55,"coins":35},"prompts":[{"npc":"Could you give me a quick update on your part of the project?","task":"Кратко опишите, что уже готово.","targetChunks":["I've finished","The main update is"],"keywords":["finished","completed","update","ready"],"exampleAnswer":"I've finished the first draft, and the main update is ready for review."},{"npc":"Is anything blocking you at the moment?","task":"Назовите одну сложность и объясните её.","targetChunks":["The only issue is","I'm waiting for"],"keywords":["issue","waiting","need","problem","blocked"],"exampleAnswer":"The only issue is that I'm waiting for the final numbers from the design team."},{"npc":"Okay, what do you suggest we do next?","task":"Предложите конкретный следующий шаг.","targetChunks":["I suggest we","The next step is"],"keywords":["suggest","next","step","could","plan"],"exampleAnswer":"I suggest we review the draft today and agree on the next step tomorrow."}]},{"id":"city-help","title":"Help in the city","goal":"Попросить помощь, уточнить маршрут и поблагодарить.","npc":{"name":"Jordan","role":"local resident","initial":"J"},"reward":{"xp":50,"coins":32},"prompts":[{"npc":"Hi there, you look a little lost. Can I help?","task":"Скажите, какое место вы ищете.","targetChunks":["I'm looking for","Could you help me"],"keywords":["looking","find","station","museum","help"],"exampleAnswer":"Thanks! I'm looking for the city museum. Could you help me find it?"},{"npc":"Sure. Go straight and turn left after the bank.","task":"Переспросите, правильно ли вы поняли маршрут.","targetChunks":["Just to make sure","Did you say"],"keywords":["straight","left","bank","sure","mean"],"exampleAnswer":"Just to make sure, did you say I should turn left after the bank?"},{"npc":"Exactly. It will be on your right. You can't miss it.","task":"Поблагодарите и вежливо завершите разговор.","targetChunks":["Thanks a lot","I appreciate it"],"keywords":["thank","appreciate","help","day"],"exampleAnswer":"Thanks a lot. I really appreciate your help. Have a great day!"}]},{"id":"coffee-order","title":"Coffee, please","goal":"Сделать заказ, уточнить состав и вежливо завершить разговор.","npc":{"name":"Jamie","role":"barista","initial":"J"},"reward":{"xp":48,"coins":30},"prompts":[{"npc":"Hi! What can I get for you today?","task":"Закажите напиток и укажите размер.","targetChunks":["Could I have","A medium, please"],"keywords":["coffee","tea","latte","medium","large","please"],"exampleAnswer":"Could I have a medium oat latte, please?"},{"npc":"Of course. Would you like regular milk or oat milk?","task":"Выберите вариант и уточните, есть ли сахар.","targetChunks":["I'd prefer","Does it come with"],"keywords":["prefer","oat","regular","milk","sugar"],"exampleAnswer":"I'd prefer oat milk. Does it come with any sugar?"},{"npc":"No sugar by default. Your total is five dollars.","task":"Подтвердите оплату и поблагодарите.","targetChunks":["I'll pay by card","Thank you"],"keywords":["pay","card","cash","thank","great"],"exampleAnswer":"Great, I'll pay by card. Thank you!"}]},{"id":"networking","title":"Meet someone new","goal":"Представиться, рассказать о своей работе и продолжить знакомство.","npc":{"name":"Taylor","role":"conference guest","initial":"T"},"reward":{"xp":58,"coins":36},"prompts":[{"npc":"Hi, I don't think we've met. What brings you to this event?","task":"Представьтесь и объясните, почему вы пришли.","targetChunks":["I'm here to","I work in"],"keywords":["here","work","event","learn","meet","people"],"exampleAnswer":"Hi, I'm Anna. I work in education, and I'm here to meet people working on language projects."},{"npc":"That sounds interesting. What are you working on at the moment?","task":"Кратко опишите текущий проект.","targetChunks":["At the moment","The project helps"],"keywords":["project","working","helps","students","platform","building"],"exampleAnswer":"At the moment, I'm building a project that helps students practise real conversations."},{"npc":"I'd love to hear more. Shall we exchange contacts?","task":"Согласитесь и предложите способ связи.","targetChunks":["That would be great","You can reach me"],"keywords":["great","contact","email","reach","connect","linkedin"],"exampleAnswer":"That would be great. You can reach me by email, or we can connect on LinkedIn."}]},{"id":"hotel-checkin","title":"Hotel check-in","goal":"Заселиться в отель, уточнить детали и решить небольшую проблему.","npc":{"name":"Morgan","role":"receptionist","initial":"M"},"reward":{"xp":60,"coins":38},"prompts":[{"npc":"Good evening. Do you have a reservation with us?","task":"Подтвердите бронь и назовите имя.","targetChunks":["I have a reservation","It's under the name"],"keywords":["reservation","booking","name","under","room"],"exampleAnswer":"Good evening. I have a reservation, and it's under the name Petrova."},{"npc":"I found it. Breakfast is served from seven to ten. Is there anything else you need?","task":"Уточните, включён ли завтрак в стоимость.","targetChunks":["Is breakfast included","Could you confirm"],"keywords":["breakfast","included","price","confirm","cost"],"exampleAnswer":"Could you confirm whether breakfast is included in the room price?"},{"npc":"Yes, it is included. Your room is on the fourth floor.","task":"Сообщите, что вам нужен тихий номер, и вежливо попросите проверить.","targetChunks":["I was hoping for","Could you check"],"keywords":["quiet","room","check","floor","noise"],"exampleAnswer":"I was hoping for a quiet room. Could you check whether this one is away from the lift?"}]}]}</script>
   <noscript><p class="noscript-message">Для работы Linguapolis необходимо включить JavaScript.</p></noscript>
-  <script src="script.js?v=3"></script>
+  <script type="module" src="script.js?v=4"></script>
 </body>
 </html>

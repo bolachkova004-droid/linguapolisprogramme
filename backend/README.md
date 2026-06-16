@@ -1,15 +1,15 @@
-# Подключение общей базы
+# Подключение регистрации и общей базы
 
-Текущая версия хранит данные в браузере. `schema.sql` — заготовка для PostgreSQL или Supabase, когда понадобится общая база учеников.
+1. Создайте проект на Supabase.
+2. Откройте **SQL Editor**, вставьте `schema.sql` и нажмите **Run**.
+3. В **Authentication → URL Configuration** добавьте адрес сайта:
+   `https://bolachkova004-droid.github.io/linguapolisprogramme/`
+4. В **Project Settings → API** скопируйте Project URL и publishable/anon key.
+5. Вставьте их в корневой файл `config.js`.
+6. Добавьте email преподавателя в `teacherEmails` внутри `config.js`.
+7. После регистрации преподавателя выполните в SQL Editor:
+   `update public.profiles set role = 'teacher' where email = 'ВАШ_EMAIL';`
 
-Минимальные серверные методы:
+Никогда не вставляйте `service_role` key в GitHub или браузер. Для сайта нужен только publishable/anon key. Доступ к данным защищается политиками Row Level Security из `schema.sql`.
 
-- `POST /api/events` — записать действие;
-- `POST /api/lesson-attempts` — создать попытку урока;
-- `POST /api/answers` — сохранить и оценить ответ;
-- `POST /api/lesson-attempts/:id/complete` — один раз начислить награду;
-- `GET /api/me/progress` — профиль и навыки ученика;
-- `GET /api/admin/analytics` — сводная аналитика;
-- `PATCH /api/admin/profiles/:id` — изменение навыков администратором.
-
-Перед публикацией с реальными учениками нужны авторизация, политики Row Level Security, серверная проверка ролей, резервные копии и правила хранения персональных данных. Награды и права администратора нельзя доверять коду браузера.
+В версии v4 регистрация и вход уже работают после заполнения `config.js`. Игровой прогресс пока сохраняется локально в браузере; таблицы для переноса прогресса и ответов в общую базу уже подготовлены.
