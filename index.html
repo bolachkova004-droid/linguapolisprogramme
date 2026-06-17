@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Linguapolis — симулятор английских диалогов с регистрацией и аналитикой прогресса.">
-  <meta name="theme-color" content="#f4f3ef">
-  <title>Linguapolis — разговорный английский</title>
-  <link rel="stylesheet" href="style.css?v=4">
+  <meta name="theme-color" content="#eafcff">
+  <title>Linguapolis Life — английский как игра</title>
+  <link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
   <div class="ambient ambient-one"></div>
@@ -17,12 +17,16 @@
   <section id="auth-view" class="auth-view">
     <div class="auth-shell">
       <div class="auth-intro">
-        <div class="brand-mark auth-brand" aria-hidden="true">L</div>
-        <p class="eyebrow">LINGUAPOLIS</p>
-        <h1>Практика английского,<br>которая помнит ваш прогресс.</h1>
-        <p>Зарегистрируйтесь, чтобы у каждого студента был отдельный вход. После входа выберите персонажа и начните диалог.</p>
+        <div class="hero-gem" aria-hidden="true"><img src="assets/ui/lingogem.svg" alt=""></div>
+        <p class="eyebrow">LINGUAPOLIS LIFE</p>
+        <h1>Прокачивайте английский<br>как навык персонажа.</h1>
+        <p>Живые диалоги, яркие аватары, ежедневные задания и награды за реальный прогресс.</p>
         <div class="auth-points" aria-label="Возможности аккаунта">
-          <span>Личный прогресс</span><span>История ответов</span><span>Доступ по классу</span>
+          <span>✦ XP и уровни</span><span>◆ Личный аватар</span><span>⚡ Серия занятий</span>
+        </div>
+        <div class="auth-world-preview" aria-hidden="true">
+          <div class="preview-card preview-one"><span>+25 XP</span><strong>Great answer!</strong></div>
+          <div class="preview-card preview-two"><span>Daily quest</span><strong>2 / 3</strong></div>
         </div>
       </div>
 
@@ -50,6 +54,11 @@
             <label>Email<input id="register-email" type="email" autocomplete="email" required placeholder="student@example.com"></label>
             <label>Пароль<input id="register-password" type="password" autocomplete="new-password" minlength="6" required placeholder="Минимум 6 символов"></label>
             <label>Код класса <span class="optional">необязательно</span><input id="register-class-code" type="text" maxlength="30" autocomplete="off" placeholder="ENGLISH-7A"></label>
+            <fieldset class="avatar-fieldset">
+              <legend>Выберите аватар</legend>
+              <div id="register-avatar-grid" class="avatar-choice-grid" aria-label="Выбор аватара"></div>
+              <input id="register-avatar" type="hidden" value="nova">
+            </fieldset>
             <button class="primary-button auth-submit" type="submit">Создать аккаунт <span>→</span></button>
           </form>
         </div>
@@ -65,11 +74,11 @@
   <section id="welcome-view" class="welcome-view is-hidden">
     <div class="welcome-shell">
       <header class="welcome-header">
-        <div class="brand-mark" aria-hidden="true">L</div>
+        <div class="brand-mark gem-brand" aria-hidden="true"><img src="assets/ui/lingogem.svg" alt=""></div>
         <div>
-          <p class="eyebrow">LINGUAPOLIS</p>
-          <h1>Разговорная практика<br>без школьного вайба.</h1>
-          <p class="welcome-copy">Выберите стиль общения. Ответы будут оцениваться по четырём метрикам, а прогресс — сохраняться автоматически.</p>
+          <p class="eyebrow">ВЫБЕРИТЕ НАСТАВНИКА</p>
+          <h1>Ваша история на английском<br>начинается здесь.</h1>
+          <p class="welcome-copy">Каждый наставник предлагает свой стиль общения. Можно менять наставника и сохранять отдельный прогресс.</p>
         </div>
       </header>
       <div id="character-grid" class="character-grid" aria-label="Выбор персонажа"></div>
@@ -80,8 +89,8 @@
   <div id="app-shell" class="app-shell is-hidden">
     <header class="topbar">
       <button class="brand-button" type="button" data-action="home" data-track="home">
-        <span class="brand-mark small">L</span>
-        <span><strong>Linguapolis</strong><small>conversation lab</small></span>
+        <span class="brand-mark small gem-brand"><img src="assets/ui/lingogem.svg" alt=""></span>
+        <span><strong>Linguapolis Life</strong><small>language simulation</small></span>
       </button>
 
       <nav class="main-nav" aria-label="Основная навигация">
@@ -91,11 +100,13 @@
       </nav>
 
       <div class="topbar-actions">
-        <div id="student-chip" class="student-chip" title="Текущий пользователь">
-          <span id="student-initial" class="student-initial">S</span>
-          <strong id="student-name">Студент</strong>
-        </div>
+        <button id="student-chip" class="student-chip" type="button" title="Изменить аватар" data-action="edit-avatar">
+          <img id="student-avatar" class="student-avatar-image" src="assets/avatars/nova.svg" alt="Аватар студента">
+          <span><strong id="student-name">Студент</strong><small id="student-mood-top">В фокусе</small></span>
+        </button>
         <span id="connection-status" class="connection-status" aria-live="polite">Онлайн</span>
+        <div class="game-chip streak-top" title="Серия занятий"><span>⚡</span><strong id="top-streak">0</strong></div>
+        <div class="game-chip coin-top" title="Монеты"><span>◆</span><strong id="top-coins">0</strong></div>
         <div class="compact-level"><span>Уровень</span><strong id="top-level">1</strong></div>
         <button class="exit-button" type="button" data-action="logout" data-track="logout" aria-label="Выйти из аккаунта" title="Выйти"><span aria-hidden="true">↗</span><strong>Выйти</strong></button>
       </div>
@@ -103,19 +114,30 @@
 
     <main class="workspace">
       <aside class="profile-column">
-        <section class="surface profile-card">
-          <div id="profile-avatar" class="profile-avatar"></div>
-          <p class="eyebrow">ВАШ ПРОФИЛЬ</p>
+        <section class="surface profile-card life-card">
+          <div class="profile-portrait-row">
+            <button id="profile-avatar-button" class="profile-avatar-button" type="button" data-action="edit-avatar" aria-label="Изменить аватар">
+              <img id="profile-avatar" class="profile-avatar-image" src="assets/avatars/nova.svg" alt="Аватар студента">
+              <span class="edit-avatar-badge">✎</span>
+            </button>
+            <div class="mood-gem-wrap" title="Настроение персонажа"><img src="assets/ui/lingogem.svg" alt=""><span id="profile-mood">В фокусе</span></div>
+          </div>
+          <p class="eyebrow">ВАШ ПЕРСОНАЖ</p>
           <h2 id="profile-name">—</h2>
           <p id="profile-description" class="muted">—</p>
+          <div class="coach-mini">
+            <img id="coach-mini-avatar" src="assets/characters/studio.svg" alt="Наставник">
+            <span>Наставник<strong id="coach-mini-name">Maya</strong></span>
+          </div>
 
-          <div class="level-row">
+          <div class="level-row level-row-three">
             <div><span>Уровень</span><strong id="profile-level">1</strong></div>
             <div><span>Монеты</span><strong id="profile-coins">0</strong></div>
+            <div><span>Серия</span><strong id="profile-streak">0</strong></div>
           </div>
           <div class="xp-block">
-            <div class="row-between"><span>Опыт</span><span id="xp-label">0 / 100 XP</span></div>
-            <div class="progress-track"><div id="xp-progress" class="progress-value"></div></div>
+            <div class="row-between"><span>До нового уровня</span><span id="xp-label">0 / 100 XP</span></div>
+            <div class="progress-track xp-track"><div id="xp-progress" class="progress-value"></div></div>
           </div>
         </section>
 
@@ -128,10 +150,29 @@
           <div id="next-unlock" class="next-unlock"></div>
           <div id="progress-roadmap" class="progress-roadmap" aria-label="Этапы прогресса"></div>
         </section>
+
+        <section class="surface daily-card life-card">
+          <div class="section-heading compact"><div><p class="eyebrow">СЕГОДНЯ</p><h3>Ежедневные задания</h3></div><span id="daily-reward-chip" class="reward-chip">+30</span></div>
+          <div id="daily-quests" class="daily-quests"></div>
+        </section>
+
+        <section class="surface badge-preview-card life-card">
+          <div class="section-heading compact"><div><p class="eyebrow">КОЛЛЕКЦИЯ</p><h3>Достижения</h3></div><span id="badge-count" class="score-chip">0</span></div>
+          <div id="badge-preview" class="badge-preview"></div>
+        </section>
       </aside>
 
       <section class="content-column">
         <section id="lesson-view" class="view-panel is-active">
+          <section class="surface journey-card life-card">
+            <div class="journey-heading"><div><p class="eyebrow">КАРТА ИСТОРИЙ</p><h3>Выберите следующую локацию</h3></div><span id="journey-progress">1 / 6</span></div>
+            <div id="lesson-map" class="lesson-map" aria-label="Карта уроков"></div>
+          </section>
+          <div class="reward-ribbon" aria-label="Награды урока">
+            <span><b>✦</b> <strong id="lesson-xp-reward">0 XP</strong></span>
+            <span><b>◆</b> <strong id="lesson-coin-reward">0 монет</strong></span>
+            <span><b>⚡</b> серия сохраняется после завершения</span>
+          </div>
           <div class="lesson-heading">
             <div>
               <p id="lesson-kicker" class="eyebrow">УРОК 01</p>
@@ -205,6 +246,10 @@
             <div class="section-heading compact"><div><p class="eyebrow">СЛЕДУЮЩИЙ ШАГ</p><h3>Персональная рекомендация</h3></div></div>
             <p id="analytics-recommendation" class="recommendation-text">Завершите первую реплику, чтобы получить рекомендацию.</p>
           </section>
+          <section class="surface achievements-card life-card">
+            <div class="section-heading"><div><p class="eyebrow">ДОСТИЖЕНИЯ</p><h3>Коллекция наград</h3></div><span id="achievement-progress-label" class="demo-badge">0 / 8</span></div>
+            <div id="achievement-gallery" class="achievement-gallery"></div>
+          </section>
           <section class="surface table-card">
             <div class="section-heading"><div><p class="eyebrow">ИСТОРИЯ</p><h3>Последние ответы</h3></div></div>
             <div class="table-wrap"><table><thead><tr><th>Дата</th><th>Урок</th><th>Ответ</th><th>Оценка</th></tr></thead><tbody id="answers-table"></tbody></table></div>
@@ -266,7 +311,23 @@
     </div>
   </dialog>
 
+  <dialog id="avatar-dialog" class="modal avatar-modal">
+    <div class="modal-inner">
+      <button class="modal-close" type="button" data-action="close-avatar-modal" aria-label="Закрыть">×</button>
+      <p class="eyebrow">ПЕРСОНАЛИЗАЦИЯ</p>
+      <h2>Выберите аватар</h2>
+      <p class="muted">Аватар отображается в профиле и в верхней панели. Его можно менять в любое время.</p>
+      <div id="profile-avatar-grid" class="avatar-choice-grid avatar-choice-large"></div>
+      <div class="modal-actions">
+        <button class="secondary-button" type="button" data-action="close-avatar-modal">Отмена</button>
+        <button id="save-avatar" class="primary-button" type="button">Сохранить аватар</button>
+      </div>
+    </div>
+  </dialog>
+
+  <div id="celebration-layer" class="celebration-layer" aria-hidden="true"></div>
+
   <noscript><p class="noscript-message">Для работы Linguapolis необходимо включить JavaScript.</p></noscript>
-  <script type="module" src="script.js?v=4"></script>
+  <script type="module" src="script.js?v=5"></script>
 </body>
 </html>

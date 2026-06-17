@@ -29,6 +29,7 @@ function normalizeUser(user) {
     email,
     name: metadata.full_name || metadata.name || email.split("@")[0] || "Студент",
     classCode: metadata.class_code || "",
+    avatarId: metadata.avatar_id || "nova",
     role: teacherEmails().includes(email) ? "teacher" : "student",
     isGuest: false
   };
@@ -40,6 +41,7 @@ function demoStudent() {
     email: "",
     name: "Демо-студент",
     classCode: "",
+    avatarId: "nova",
     role: "student",
     isGuest: true
   };
@@ -101,7 +103,7 @@ export const AuthService = {
     return currentStudent?.role === "teacher";
   },
 
-  async signUp({ name, email, password, classCode }) {
+  async signUp({ name, email, password, classCode, avatarId = "nova" }) {
     if (!supabaseClient) throw new Error("Регистрация ещё не подключена. Сначала настройте Supabase.");
     const redirectTo = `${window.location.origin}${window.location.pathname}`;
     const { data, error } = await supabaseClient.auth.signUp({
@@ -111,7 +113,8 @@ export const AuthService = {
         emailRedirectTo: redirectTo,
         data: {
           full_name: name.trim(),
-          class_code: classCode.trim()
+          class_code: classCode.trim(),
+          avatar_id: avatarId
         }
       }
     });
@@ -138,6 +141,23 @@ export const AuthService = {
   continueAsGuest() {
     authMode = "demo";
     currentStudent = demoStudent();
+    emitAuthChange();
+    return currentStudent;
+  },
+
+
+  async updateProfile({ name, avatarId } = {}) {
+    const nextName = String(name || currentStudent?.name || "Студент").trim();
+    const nextAvatar = String(avatarId || currentStudent?.avatarId || "nova").trim();
+    if (supabaseClient && currentStudent && !currentStudent.isGuest) {
+      const { data, error } = await supabaseClient.auth.updateUser({
+        data: { full_name: nextName, avatar_id: nextAvatar }
+      });
+      if (error) throw error;
+      currentStudent = normalizeUser(data.user);
+    } else if (currentStudent) {
+      currentStudent = { ...currentStudent, name: nextName, avatarId: nextAvatar };
+    }
     emitAuthChange();
     return currentStudent;
   },

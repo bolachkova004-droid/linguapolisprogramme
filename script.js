@@ -5,12 +5,13 @@ import { AuthService, AUTH_EVENT } from "./auth.js";
 const DATA_URL = "data.json";
 const DB_NAME = "linguapolis_db_v2";
 const DB_VERSION = 1;
-const APP_VERSION = 4;
+const APP_VERSION = 5;
 const SESSION_ID = crypto.randomUUID ? crypto.randomUUID() : `session-${Date.now()}`;
 
 const KEYS = {
   profiles: "linguapolis_profiles_v2",
-  selectedCharacter: "linguapolis_selected_character_v2"
+  selectedCharacter: "linguapolis_selected_character_v2",
+  studentSettings: "linguapolis_student_settings_v1"
 };
 
 const SKILLS = {
@@ -21,13 +22,46 @@ const SKILLS = {
 };
 
 const ACCENTS = {
-  violet: ["#6856c9", "#e6e0fa"],
-  blue: ["#3f6f9e", "#dcebf5"],
-  sand: ["#8a6d50", "#eee3d4"],
-  green: ["#487866", "#dcebe3"],
-  rose: ["#9a5f70", "#f2dfe4"],
-  orange: ["#9b6737", "#f3e2ce"]
+  violet: ["#7357ff", "#e7e0ff"],
+  blue: ["#198fd0", "#d9f2ff"],
+  sand: ["#c7852b", "#fff0cf"],
+  green: ["#2d9a68", "#d9f7e9"],
+  rose: ["#c45b8d", "#ffe3ef"],
+  orange: ["#ea7a2f", "#ffe2cd"]
 };
+
+const AVATARS = [
+  { id: "nova", name: "Nova", src: "assets/avatars/nova.svg" },
+  { id: "lumi", name: "Lumi", src: "assets/avatars/lumi.svg" },
+  { id: "sage", name: "Sage", src: "assets/avatars/sage.svg" },
+  { id: "milo", name: "Milo", src: "assets/avatars/milo.svg" },
+  { id: "aria", name: "Aria", src: "assets/avatars/aria.svg" },
+  { id: "kai", name: "Kai", src: "assets/avatars/kai.svg" },
+  { id: "sol", name: "Sol", src: "assets/avatars/sol.svg" },
+  { id: "rio", name: "Rio", src: "assets/avatars/rio.svg" },
+  { id: "ivy", name: "Ivy", src: "assets/avatars/ivy.svg" },
+  { id: "atlas", name: "Atlas", src: "assets/avatars/atlas.svg" }
+];
+
+const ACHIEVEMENTS = [
+  { id: "first_words", icon: "💬", title: "First Words", description: "Отправить первый ответ", test: state => state.totalAnswers >= 1 },
+  { id: "strong_reply", icon: "✨", title: "Strong Reply", description: "Получить 85+ за ответ", test: state => state.bestScore >= 85 },
+  { id: "near_native", icon: "🌟", title: "Near Native", description: "Получить 95+ за ответ", test: state => state.bestScore >= 95 },
+  { id: "first_story", icon: "🏁", title: "Story Complete", description: "Завершить первый урок", test: state => state.completedLessons >= 1 },
+  { id: "streak_three", icon: "⚡", title: "On a Roll", description: "Серия 3 дня", test: state => state.streak >= 3 },
+  { id: "level_three", icon: "💎", title: "Growing Star", description: "Достичь 3 уровня", test: state => state.level >= 3 },
+  { id: "explorer", icon: "🗺️", title: "City Explorer", description: "Открыть 4 локации", test: state => state.unlockedLessonCount >= 4 },
+  { id: "collector", icon: "◆", title: "Collector", description: "Накопить 250 монет", test: state => state.coins >= 250 }
+];
+
+const DAILY_QUESTS = [
+  { id: "answers", icon: "💬", title: "Три реплики", target: 3, value: daily => daily.answers },
+  { id: "quality", icon: "✨", title: "Ответ на 75+", target: 1, value: daily => daily.goodAnswers },
+  { id: "lesson", icon: "🏁", title: "Завершить урок", target: 1, value: daily => daily.lessons }
+];
+
+const LESSON_ICONS = ["🏡", "💼", "✈️", "☕", "🤝", "🏨"];
+const DAILY_REWARD = { xp: 35, coins: 30 };
 
 let APP_DATA = null;
 let database = null;
@@ -39,6 +73,7 @@ let answerDraftStarted = false;
 let isSubmittingAnswer = false;
 let isFinishingLesson = false;
 let draftSaveTimer = null;
+let pendingAvatarId = "nova";
 
 class BrowserDatabase {
   constructor() {
@@ -164,6 +199,7 @@ async function boot() {
   bindGlobalEvents();
   updateConnectionStatus();
   renderCharacterGrid();
+  renderAvatarPickers();
 
   const authState = await AuthService.init();
   renderAuthAvailability(authState);
@@ -214,7 +250,7 @@ function showAuthView(message = "") {
 
 async function startStudentSession(student, restored = false) {
   if (!student) return showAuthView();
-  currentStudent = student;
+  currentStudent = hydrateStudentSettings(student);
   updateStudentUi();
   document.getElementById("auth-view")?.classList.add("is-hidden");
   document.getElementById("welcome-view")?.classList.remove("is-hidden");
@@ -235,8 +271,14 @@ async function startStudentSession(student, restored = false) {
 function updateStudentUi() {
   const student = currentStudent;
   const name = student?.name || "Студент";
+  const avatar = avatarById(student?.avatarId);
   setText("student-name", name);
-  setText("student-initial", name.trim().charAt(0).toUpperCase() || "S");
+  const topAvatar = document.getElementById("student-avatar");
+  if (topAvatar) {
+    topAvatar.src = avatar.src;
+    topAvatar.alt = `Аватар ${name}`;
+  }
+  setText("student-mood-top", playerState ? getPlayerMood().label : "Готов к игре");
 
   const adminButton = document.getElementById("admin-nav-button");
   if (adminButton) adminButton.classList.toggle("is-hidden", !canAccessAdmin());
@@ -314,6 +356,7 @@ async function handleRegistration(event) {
   const email = document.getElementById("register-email").value.trim();
   const password = document.getElementById("register-password").value;
   const classCode = document.getElementById("register-class-code").value.trim();
+  const avatarId = document.getElementById("register-avatar").value || "nova";
 
   if (name.length < 2) {
     setAuthMessage("Укажите имя минимум из двух символов.", "error");
@@ -323,7 +366,7 @@ async function handleRegistration(event) {
   setAuthFormBusy(form, true, "Создаём аккаунт…");
   setAuthMessage("");
   try {
-    const result = await AuthService.signUp({ name, email, password, classCode });
+    const result = await AuthService.signUp({ name, email, password, classCode, avatarId });
     if (result.needsEmailConfirmation) {
       setAuthTab("login");
       document.getElementById("login-email").value = email;
@@ -428,10 +471,17 @@ function bindGlobalEvents() {
   });
   document.querySelector("[data-action='logout']").addEventListener("click", logout);
   document.querySelectorAll("[data-action='close-modal']").forEach(button => button.addEventListener("click", closeLessonDialog));
+  document.querySelectorAll("[data-action='edit-avatar']").forEach(button => button.addEventListener("click", openAvatarDialog));
+  document.querySelectorAll("[data-action='close-avatar-modal']").forEach(button => button.addEventListener("click", closeAvatarDialog));
+  document.getElementById("save-avatar")?.addEventListener("click", saveSelectedAvatar);
 
   document.addEventListener("click", event => {
     const chunk = event.target.closest("[data-chunk]");
     if (chunk) insertHint(chunk.dataset.chunk);
+    const avatarChoice = event.target.closest("[data-avatar-id]");
+    if (avatarChoice) selectAvatarChoice(avatarChoice);
+    const lessonChoice = event.target.closest("[data-lesson-index]");
+    if (lessonChoice && !lessonChoice.disabled) selectLesson(Number(lessonChoice.dataset.lessonIndex));
   });
 
   const answerInput = document.getElementById("answer-input");
@@ -514,8 +564,14 @@ function createProfile(character) {
     },
     completedLessons: 0,
     lessonIndex: 0,
+    unlockedLessonCount: 1,
+    lessonCompletions: {},
+    totalAnswers: 0,
+    bestScore: 0,
     streak: 0,
     lastLessonDate: null,
+    achievements: [],
+    daily: createDailyState(),
     unlocks: [],
     session: null,
     createdAt: new Date().toISOString(),
@@ -543,7 +599,13 @@ function normalizeProfile(profile, character) {
     coins: Math.max(0, Number(source.coins) || 0),
     completedLessons: Math.max(0, Number(source.completedLessons) || 0),
     lessonIndex: Math.max(0, Number(source.lessonIndex) || 0) % APP_DATA.lessons.length,
+    unlockedLessonCount: Math.max(1, Math.min(APP_DATA.lessons.length, Number(source.unlockedLessonCount) || Math.min(APP_DATA.lessons.length, (Number(source.completedLessons) || 0) + 1))),
+    lessonCompletions: source.lessonCompletions && typeof source.lessonCompletions === "object" ? source.lessonCompletions : {},
+    totalAnswers: Math.max(0, Number(source.totalAnswers) || 0),
+    bestScore: clampScore(source.bestScore),
     streak: Math.max(0, Number(source.streak) || 0),
+    achievements: Array.isArray(source.achievements) ? [...new Set(source.achievements.filter(Boolean))] : [],
+    daily: normalizeDailyState(source.daily),
     skills: Object.keys(SKILLS).reduce((result, key) => {
       result[key] = clamp(source.skills?.[key] ?? base.skills[key]);
       return result;
@@ -589,7 +651,7 @@ function renderCharacterGrid() {
     card.style.setProperty("--character-tint", tint);
     card.dataset.track = `select_character_${character.id}`;
     card.innerHTML = `
-      <span class="character-avatar" aria-hidden="true">${characterIconSvg(character.icon || character.id)}</span>
+      <span class="character-avatar" aria-hidden="true"><img src="${characterPortraitSrc(character)}" alt=""></span>
       <span class="character-role">${escapeHtml(character.role)}</span>
       <h2>${escapeHtml(character.name)}</h2>
       <p>${escapeHtml(character.description)}</p>
@@ -659,23 +721,40 @@ function activeLesson() {
 }
 
 function renderEverything() {
+  ensureDailyState();
   renderProfile();
   renderLesson();
+  renderDailyQuests();
+  renderAchievements();
+  renderLessonMap();
+  updateStudentUi();
 }
 
 function renderProfile() {
   const average = averageSkill();
-  setText("profile-name", currentCharacter.name);
-  setText("profile-description", currentCharacter.description);
+  const mood = getPlayerMood();
+  setText("profile-name", currentStudent?.name || "Студент");
+  setText("profile-description", `${mood.emoji} ${mood.label} · ${currentCharacter.role}`);
+  setText("profile-mood", mood.label);
   setText("profile-level", playerState.level);
   setText("top-level", playerState.level);
   setText("profile-coins", playerState.coins);
+  setText("top-coins", playerState.coins);
+  setText("profile-streak", playerState.streak);
+  setText("top-streak", playerState.streak);
   setText("xp-label", `${playerState.xp} / ${playerState.xpNext} XP`);
   document.getElementById("xp-progress").style.width = `${Math.min(100, (playerState.xp / playerState.xpNext) * 100)}%`;
   setText("average-skill", Math.round(average));
 
   const avatar = document.getElementById("profile-avatar");
-  avatar.innerHTML = characterIconSvg(currentCharacter.icon || currentCharacter.id);
+  const studentAvatar = avatarById(currentStudent?.avatarId);
+  if (avatar) {
+    avatar.src = studentAvatar.src;
+    avatar.alt = `Аватар ${currentStudent?.name || "студента"}`;
+  }
+  const coachAvatar = document.getElementById("coach-mini-avatar");
+  if (coachAvatar) coachAvatar.src = characterPortraitSrc(currentCharacter);
+  setText("coach-mini-name", currentCharacter.name);
 
   const skillsList = document.getElementById("skills-list");
   skillsList.innerHTML = Object.entries(SKILLS).map(([key, label]) => {
@@ -723,9 +802,11 @@ function renderLesson() {
   setText("lesson-kicker", `УРОК ${String((playerState.lessonIndex % APP_DATA.lessons.length) + 1).padStart(2, "0")}`);
   setText("lesson-title", lesson.title);
   setText("lesson-goal", lesson.goal);
+  setText("lesson-xp-reward", `${lesson.reward.xp} XP`);
+  setText("lesson-coin-reward", `${lesson.reward.coins} монет`);
   setText("npc-name", lesson.npc.name);
   setText("npc-role", lesson.npc.role);
-  document.getElementById("npc-avatar").innerHTML = npcIconSvg(lesson.npc.name);
+  document.getElementById("npc-avatar").innerHTML = `<img src="${npcPortraitSrc(lesson.npc.name)}" alt="${escapeHtml(lesson.npc.name)}">`;
 
   const displayedStep = Math.min(session.promptIndex + 1, lesson.prompts.length);
   setText("lesson-step", `${displayedStep} / ${lesson.prompts.length}`);
@@ -952,6 +1033,11 @@ async function submitAnswer() {
     const answerXp = metrics.overall >= 45 ? Math.max(2, Math.round((metrics.overall - 35) / 8)) : 0;
     addXp(answerXp);
     playerState.coins += metrics.overall >= 45 ? (metrics.targetUsed ? 4 : 2) : 0;
+    playerState.totalAnswers += 1;
+    playerState.bestScore = Math.max(playerState.bestScore, metrics.overall);
+    ensureDailyState();
+    playerState.daily.answers += 1;
+    if (metrics.overall >= 75) playerState.daily.goodAnswers += 1;
 
     session.answers.push(record);
     session.awaitingNext = true;
@@ -974,6 +1060,8 @@ async function submitAnswer() {
     await logEvent("skills_changed", { source: "answer", gains, values: playerState.skills });
 
     if (crossedUnlocks.length) crossedUnlocks.forEach(unlock => toast("Новый этап навыка", unlock));
+    unlockAchievements();
+    checkDailyQuestReward();
   } catch (error) {
     console.error("Could not save answer", error);
     toast("Ответ не сохранился", "Проверьте доступ к хранилищу и попробуйте ещё раз.");
@@ -1157,6 +1245,10 @@ async function confirmLessonFinish() {
     addXp(lesson.reward.xp);
     playerState.coins += lesson.reward.coins;
     playerState.completedLessons += 1;
+    playerState.lessonCompletions[lesson.id] = (Number(playerState.lessonCompletions[lesson.id]) || 0) + 1;
+    playerState.unlockedLessonCount = Math.min(APP_DATA.lessons.length, Math.max(playerState.unlockedLessonCount, playerState.lessonIndex + 2));
+    ensureDailyState();
+    playerState.daily.lessons += 1;
     updateStreak();
 
     const completion = {
@@ -1168,14 +1260,19 @@ async function confirmLessonFinish() {
     };
 
     const completedLessonId = lesson.id;
-    playerState.lessonIndex = (playerState.lessonIndex + 1) % APP_DATA.lessons.length;
+    playerState.lessonIndex = playerState.lessonIndex + 1 < playerState.unlockedLessonCount
+      ? playerState.lessonIndex + 1
+      : 0;
     playerState.session = null;
     ensureLessonSession();
     saveCurrentProfile();
     closeLessonDialog(completedLessonId);
     renderEverything();
     await logEvent("lesson_completed", completion);
-    toast("Урок завершён", `+${lesson.reward.xp} XP и +${lesson.reward.coins} монет. Следующий сценарий уже открыт.`);
+    unlockAchievements();
+    checkDailyQuestReward();
+    celebrate("lesson");
+    toast("Урок завершён", `+${lesson.reward.xp} XP и +${lesson.reward.coins} монет. Новая локация уже на карте.`);
     window.scrollTo({ top: 0, behavior: "smooth" });
   } catch (error) {
     console.error("Could not finish lesson", error);
@@ -1196,6 +1293,7 @@ function addXp(amount) {
     playerState.level += 1;
     playerState.xpNext = Math.round(playerState.xpNext * 1.22);
     toast("Новый уровень", `Теперь у вас ${playerState.level} уровень.`);
+    celebrate("level");
     logEvent("level_up", { level: playerState.level, xpNext: playerState.xpNext });
   }
 }
@@ -1212,6 +1310,260 @@ function updateStreak() {
     else if (difference > 1) playerState.streak = 1;
   }
   playerState.lastLessonDate = todayKey;
+}
+
+
+function avatarById(id) {
+  return AVATARS.find(avatar => avatar.id === id) || AVATARS[0];
+}
+
+function characterPortraitSrc(character) {
+  const id = character?.icon || character?.id || "studio";
+  return `assets/characters/${id}.svg`;
+}
+
+function npcPortraitSrc(name = "") {
+  const ids = ["product", "travel", "founder", "studio", "academic", "global"];
+  const hash = [...String(name)].reduce((total, char) => total + char.charCodeAt(0), 0);
+  return `assets/characters/${ids[hash % ids.length]}.svg`;
+}
+
+function getStudentSettings() {
+  return safeParseJson(safeStorageGet(scopedKey(KEYS.studentSettings)), {});
+}
+
+function saveStudentSettings(settings) {
+  safeStorageSet(scopedKey(KEYS.studentSettings), JSON.stringify(settings));
+}
+
+function hydrateStudentSettings(student) {
+  if (!student) return student;
+  currentStudent = student;
+  const saved = getStudentSettings();
+  const avatarId = avatarById(saved.avatarId || student.avatarId).id;
+  const hydrated = { ...student, avatarId };
+  currentStudent = hydrated;
+  saveStudentSettings({ ...saved, avatarId });
+  return hydrated;
+}
+
+function renderAvatarPickers() {
+  const markup = (selectedId, context) => AVATARS.map(avatar => `
+    <button class="avatar-choice${avatar.id === selectedId ? " is-selected" : ""}" type="button" data-avatar-id="${avatar.id}" data-avatar-context="${context}" aria-label="Аватар ${avatar.name}" aria-pressed="${avatar.id === selectedId}">
+      <img src="${avatar.src}" alt=""><span>${avatar.name}</span>
+    </button>
+  `).join("");
+
+  const register = document.getElementById("register-avatar-grid");
+  const registerValue = document.getElementById("register-avatar")?.value || "nova";
+  if (register) register.innerHTML = markup(registerValue, "register");
+
+  const profile = document.getElementById("profile-avatar-grid");
+  if (profile) profile.innerHTML = markup(pendingAvatarId || currentStudent?.avatarId || "nova", "profile");
+}
+
+function selectAvatarChoice(button) {
+  const id = avatarById(button.dataset.avatarId).id;
+  const context = button.dataset.avatarContext;
+  if (context === "register") {
+    const input = document.getElementById("register-avatar");
+    if (input) input.value = id;
+  } else {
+    pendingAvatarId = id;
+  }
+  const container = button.closest(".avatar-choice-grid");
+  container?.querySelectorAll(".avatar-choice").forEach(item => {
+    const selected = item.dataset.avatarId === id;
+    item.classList.toggle("is-selected", selected);
+    item.setAttribute("aria-pressed", String(selected));
+  });
+}
+
+function openAvatarDialog() {
+  if (!currentStudent) return;
+  pendingAvatarId = currentStudent.avatarId || "nova";
+  renderAvatarPickers();
+  const dialog = document.getElementById("avatar-dialog");
+  if (typeof dialog?.showModal === "function") dialog.showModal();
+  else dialog?.setAttribute("open", "");
+}
+
+function closeAvatarDialog() {
+  const dialog = document.getElementById("avatar-dialog");
+  if (dialog?.open && typeof dialog.close === "function") dialog.close();
+  else dialog?.removeAttribute("open");
+}
+
+async function saveSelectedAvatar() {
+  const button = document.getElementById("save-avatar");
+  button.disabled = true;
+  try {
+    const updated = await AuthService.updateProfile({ avatarId: pendingAvatarId });
+    currentStudent = hydrateStudentSettings(updated || { ...currentStudent, avatarId: pendingAvatarId });
+    saveStudentSettings({ ...getStudentSettings(), avatarId: pendingAvatarId });
+    updateStudentUi();
+    renderProfile();
+    closeAvatarDialog();
+    await logEvent("avatar_changed", { avatarId: pendingAvatarId });
+    toast("Аватар обновлён", "Новый образ уже отображается в профиле.");
+  } catch (error) {
+    console.error("Avatar update failed", error);
+    toast("Не удалось сохранить аватар", "Попробуйте ещё раз.");
+  } finally {
+    button.disabled = false;
+  }
+}
+
+function createDailyState() {
+  return { date: localDateKey(new Date()), answers: 0, goodAnswers: 0, lessons: 0, claimed: false };
+}
+
+function normalizeDailyState(daily) {
+  const today = localDateKey(new Date());
+  if (!daily || daily.date !== today) return createDailyState();
+  return {
+    date: today,
+    answers: Math.max(0, Number(daily.answers) || 0),
+    goodAnswers: Math.max(0, Number(daily.goodAnswers) || 0),
+    lessons: Math.max(0, Number(daily.lessons) || 0),
+    claimed: Boolean(daily.claimed)
+  };
+}
+
+function ensureDailyState() {
+  if (!playerState) return;
+  playerState.daily = normalizeDailyState(playerState.daily);
+}
+
+function dailyQuestComplete(quest) {
+  const value = Math.min(quest.target, quest.value(playerState.daily));
+  return { value, complete: value >= quest.target };
+}
+
+function renderDailyQuests() {
+  const container = document.getElementById("daily-quests");
+  if (!container || !playerState) return;
+  ensureDailyState();
+  const allComplete = DAILY_QUESTS.every(quest => dailyQuestComplete(quest).complete);
+  setText("daily-reward-chip", playerState.daily.claimed ? "получено" : `+${DAILY_REWARD.coins}`);
+  container.innerHTML = DAILY_QUESTS.map(quest => {
+    const status = dailyQuestComplete(quest);
+    const percent = Math.round((status.value / quest.target) * 100);
+    return `<div class="quest-item${status.complete ? " is-complete" : ""}">
+      <span class="quest-icon">${quest.icon}</span>
+      <div><strong>${escapeHtml(quest.title)}</strong><span>${status.value} / ${quest.target}</span><i><b style="width:${percent}%"></b></i></div>
+      <em>${status.complete ? "✓" : "+"}</em>
+    </div>`;
+  }).join("") + (allComplete ? `<div class="daily-complete${playerState.daily.claimed ? " is-claimed" : ""}">${playerState.daily.claimed ? "Награда за сегодня получена" : "Все задания выполнены — заберите награду"}</div>` : "");
+}
+
+function checkDailyQuestReward() {
+  if (!playerState) return false;
+  ensureDailyState();
+  const complete = DAILY_QUESTS.every(quest => dailyQuestComplete(quest).complete);
+  if (!complete || playerState.daily.claimed) return false;
+  playerState.daily.claimed = true;
+  playerState.coins += DAILY_REWARD.coins;
+  addXp(DAILY_REWARD.xp);
+  unlockAchievements();
+  saveCurrentProfile();
+  celebrate("daily");
+  toast("Ежедневная цель выполнена", `+${DAILY_REWARD.xp} XP и +${DAILY_REWARD.coins} монет.`);
+  logEvent("daily_reward_claimed", DAILY_REWARD);
+  renderEverything();
+  return true;
+}
+
+function unlockAchievements() {
+  if (!playerState) return [];
+  const unlocked = [];
+  playerState.achievements = Array.isArray(playerState.achievements) ? playerState.achievements : [];
+  ACHIEVEMENTS.forEach(achievement => {
+    if (!playerState.achievements.includes(achievement.id) && achievement.test(playerState)) {
+      playerState.achievements.push(achievement.id);
+      playerState.coins += 10;
+      unlocked.push(achievement);
+      toast(`Достижение: ${achievement.title}`, `${achievement.description} · +10 монет`);
+      logEvent("achievement_unlocked", { achievementId: achievement.id });
+    }
+  });
+  if (unlocked.length) {
+    saveCurrentProfile();
+    celebrate("achievement");
+    renderAchievements();
+    renderProfile();
+  }
+  return unlocked;
+}
+
+function renderAchievements() {
+  if (!playerState) return;
+  const unlocked = new Set(playerState.achievements || []);
+  const markup = ACHIEVEMENTS.map(achievement => `
+    <div class="achievement-badge${unlocked.has(achievement.id) ? " is-unlocked" : ""}" title="${escapeHtml(achievement.description)}">
+      <span>${achievement.icon}</span><strong>${escapeHtml(achievement.title)}</strong><small>${escapeHtml(achievement.description)}</small>
+    </div>
+  `).join("");
+  const gallery = document.getElementById("achievement-gallery");
+  if (gallery) gallery.innerHTML = markup;
+  const preview = document.getElementById("badge-preview");
+  if (preview) preview.innerHTML = ACHIEVEMENTS.slice(0, 4).map(achievement => `<span class="mini-badge${unlocked.has(achievement.id) ? " is-unlocked" : ""}" title="${escapeHtml(achievement.title)}">${achievement.icon}</span>`).join("");
+  setText("badge-count", unlocked.size);
+  setText("achievement-progress-label", `${unlocked.size} / ${ACHIEVEMENTS.length}`);
+}
+
+function getPlayerMood() {
+  if (!playerState) return { label: "Готов к игре", emoji: "◇" };
+  const lastScore = playerState.session?.answers?.at?.(-1)?.metrics?.overall || 0;
+  if (lastScore >= 90) return { label: "Вдохновлён", emoji: "✨" };
+  if (playerState.streak >= 3) return { label: "На волне", emoji: "⚡" };
+  if (averageSkill() >= 70) return { label: "Уверен", emoji: "💎" };
+  if (playerState.session?.answers?.length) return { label: "Сосредоточен", emoji: "🎯" };
+  return { label: "Любопытен", emoji: "◇" };
+}
+
+function renderLessonMap() {
+  const map = document.getElementById("lesson-map");
+  if (!map || !playerState) return;
+  const unlockedCount = Math.max(1, playerState.unlockedLessonCount || 1);
+  setText("journey-progress", `${unlockedCount} / ${APP_DATA.lessons.length} открыто`);
+  map.innerHTML = APP_DATA.lessons.map((lesson, index) => {
+    const unlocked = index < unlockedCount;
+    const active = index === playerState.lessonIndex;
+    const completions = Number(playerState.lessonCompletions?.[lesson.id]) || 0;
+    return `<button class="map-stop${active ? " is-active" : ""}${unlocked ? "" : " is-locked"}" type="button" data-lesson-index="${index}" ${unlocked ? "" : "disabled"} title="${escapeHtml(unlocked ? lesson.title : "Сначала завершите предыдущую локацию")}">
+      <span class="map-stop-icon">${unlocked ? LESSON_ICONS[index % LESSON_ICONS.length] : "🔒"}</span>
+      <span class="map-stop-copy"><strong>${escapeHtml(lesson.title)}</strong><small>${completions ? `пройдено ${completions}` : unlocked ? "доступно" : "закрыто"}</small></span>
+      ${completions ? '<i class="map-check">✓</i>' : ""}
+    </button>`;
+  }).join("");
+}
+
+function selectLesson(index) {
+  if (!playerState || index < 0 || index >= playerState.unlockedLessonCount || index === playerState.lessonIndex) return;
+  const session = activeSession();
+  if (session?.answers?.length && !session.readyToFinish) {
+    const approved = confirm("Начать другую историю? Текущий незавершённый диалог будет сброшен.");
+    if (!approved) return;
+  }
+  playerState.lessonIndex = index;
+  playerState.session = null;
+  ensureLessonSession();
+  saveCurrentProfile();
+  renderEverything();
+  logEvent("lesson_selected", { lessonId: activeLesson()?.id, lessonIndex: index });
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function celebrate(type = "lesson") {
+  const layer = document.getElementById("celebration-layer");
+  if (!layer || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+  const symbols = type === "level" ? ["💎", "✦", "◆"] : type === "achievement" ? ["🏆", "✦", "★"] : ["✦", "◆", "●"];
+  layer.innerHTML = Array.from({ length: 22 }, (_, index) => `<i style="--x:${4 + Math.random() * 92}%;--delay:${Math.random() * .35}s;--turn:${Math.random() * 540 - 270}deg">${symbols[index % symbols.length]}</i>`).join("");
+  layer.classList.remove("is-active");
+  void layer.offsetWidth;
+  layer.classList.add("is-active");
+  setTimeout(() => { layer.classList.remove("is-active"); layer.innerHTML = ""; }, 2100);
 }
 
 async function switchView(view, shouldLog = true) {
@@ -1258,6 +1610,7 @@ async function renderAnalytics() {
   `).join("");
 
   setText("analytics-recommendation", buildAnalyticsRecommendation(answers, averages));
+  renderAchievements();
 
   const table = document.getElementById("answers-table");
   table.innerHTML = answers.length ? answers.slice(0, 12).map(answer => `

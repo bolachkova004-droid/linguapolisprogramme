@@ -1,4 +1,4 @@
--- Linguapolis v4: Supabase Auth + database + Row Level Security.
+-- Linguapolis v5: Supabase Auth + database + Row Level Security.
 -- Run this file once in Supabase → SQL Editor.
 
 create extension if not exists "pgcrypto";
@@ -8,10 +8,14 @@ create table if not exists public.profiles (
   display_name text not null default 'Студент',
   email text,
   class_code text,
+  avatar_id text not null default 'nova',
   role text not null default 'student' check (role in ('student', 'teacher', 'admin')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- Safe migration for projects where the v4 schema was already installed.
+alter table public.profiles add column if not exists avatar_id text not null default 'nova';
 
 create table if not exists public.learner_profiles (
   id uuid primary key default gen_random_uuid(),
@@ -88,17 +92,19 @@ language plpgsql
 security definer set search_path = public
 as $$
 begin
-  insert into public.profiles (id, display_name, email, class_code)
+  insert into public.profiles (id, display_name, email, class_code, avatar_id)
   values (
     new.id,
     coalesce(new.raw_user_meta_data ->> 'full_name', split_part(coalesce(new.email, 'Студент'), '@', 1)),
     new.email,
-    nullif(new.raw_user_meta_data ->> 'class_code', '')
+    nullif(new.raw_user_meta_data ->> 'class_code', ''),
+    coalesce(nullif(new.raw_user_meta_data ->> 'avatar_id', ''), 'nova')
   )
   on conflict (id) do update set
     display_name = excluded.display_name,
     email = excluded.email,
     class_code = excluded.class_code,
+    avatar_id = excluded.avatar_id,
     updated_at = now();
   return new;
 end;
