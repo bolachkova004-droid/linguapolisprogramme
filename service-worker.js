@@ -1,9 +1,9 @@
-const CACHE = "linguapolis-v7-1-shell";
+const CACHE = "linguapolis-v7-2-shell";
 const SHELL = [
   "./",
   "./index.html",
-  "./style.css?v=7.1",
-  "./script.js?v=7.1",
+  "./style.css?v=7.2",
+  "./script.js?v=7.2",
   "./auth.js",
   "./data.json",
   "./manifest.webmanifest",

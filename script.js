@@ -5,7 +5,7 @@ import { AuthService, AUTH_EVENT } from "./auth.js";
 const DATA_URL = "data.json";
 const DB_NAME = "linguapolis_db_v2";
 const DB_VERSION = 1;
-const APP_VERSION = "7.1";
+const APP_VERSION = "7.2";
 const SESSION_ID = crypto.randomUUID ? crypto.randomUUID() : `session-${Date.now()}`;
 
 const KEYS = {
@@ -193,16 +193,19 @@ class BrowserDatabase {
 document.addEventListener("DOMContentLoaded", () => boot().catch(handleFatalError));
 
 async function boot() {
+  // Bind the authentication controls first so tabs and demo mode remain usable
+  // even when an optional resource fails to load.
+  bindGlobalEvents();
+  setupInstallExperience();
+  updateConnectionStatus();
+
   database = new BrowserDatabase();
   await database.init();
   APP_DATA = await loadAppData();
   validateAppData(APP_DATA);
-  bindGlobalEvents();
-  setupInstallExperience();
-  registerServiceWorker();
-  updateConnectionStatus();
   renderCharacterGrid();
   renderAvatarPickers();
+  registerServiceWorker();
 
   const authState = await AuthService.init();
   renderAuthAvailability(authState);
