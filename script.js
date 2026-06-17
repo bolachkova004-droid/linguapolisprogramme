@@ -5,7 +5,7 @@ import { AuthService, AUTH_EVENT } from "./auth.js";
 const DATA_URL = "data.json";
 const DB_NAME = "linguapolis_db_v2";
 const DB_VERSION = 1;
-const APP_VERSION = 5;
+const APP_VERSION = 6;
 const SESSION_ID = crypto.randomUUID ? crypto.randomUUID() : `session-${Date.now()}`;
 
 const KEYS = {
@@ -31,16 +31,16 @@ const ACCENTS = {
 };
 
 const AVATARS = [
-  { id: "nova", name: "Nova", src: "assets/avatars/nova.svg" },
-  { id: "lumi", name: "Lumi", src: "assets/avatars/lumi.svg" },
-  { id: "sage", name: "Sage", src: "assets/avatars/sage.svg" },
-  { id: "milo", name: "Milo", src: "assets/avatars/milo.svg" },
-  { id: "aria", name: "Aria", src: "assets/avatars/aria.svg" },
-  { id: "kai", name: "Kai", src: "assets/avatars/kai.svg" },
-  { id: "sol", name: "Sol", src: "assets/avatars/sol.svg" },
-  { id: "rio", name: "Rio", src: "assets/avatars/rio.svg" },
-  { id: "ivy", name: "Ivy", src: "assets/avatars/ivy.svg" },
-  { id: "atlas", name: "Atlas", src: "assets/avatars/atlas.svg" }
+  { id: "nova", name: "Nova", src: "assets/avatars-realistic/nova.webp" },
+  { id: "lumi", name: "Lumi", src: "assets/avatars-realistic/lumi.webp" },
+  { id: "sage", name: "Sage", src: "assets/avatars-realistic/sage.webp" },
+  { id: "milo", name: "Milo", src: "assets/avatars-realistic/milo.webp" },
+  { id: "aria", name: "Aria", src: "assets/avatars-realistic/aria.webp" },
+  { id: "kai", name: "Kai", src: "assets/avatars-realistic/kai.webp" },
+  { id: "sol", name: "Sol", src: "assets/avatars-realistic/sol.webp" },
+  { id: "rio", name: "Rio", src: "assets/avatars-realistic/rio.webp" },
+  { id: "ivy", name: "Ivy", src: "assets/avatars-realistic/ivy.webp" },
+  { id: "atlas", name: "Atlas", src: "assets/avatars-realistic/atlas.webp" }
 ];
 
 const ACHIEVEMENTS = [
@@ -74,6 +74,7 @@ let isSubmittingAnswer = false;
 let isFinishingLesson = false;
 let draftSaveTimer = null;
 let pendingAvatarId = "nova";
+let deferredInstallPrompt = null;
 
 class BrowserDatabase {
   constructor() {
@@ -197,6 +198,8 @@ async function boot() {
   APP_DATA = await loadAppData();
   validateAppData(APP_DATA);
   bindGlobalEvents();
+  setupInstallExperience();
+  registerServiceWorker();
   updateConnectionStatus();
   renderCharacterGrid();
   renderAvatarPickers();
@@ -216,6 +219,44 @@ async function boot() {
   });
 }
 
+
+
+function setupInstallExperience() {
+  const installButton = document.getElementById("install-app");
+  if (!installButton) return;
+
+  window.addEventListener("beforeinstallprompt", event => {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    installButton.classList.remove("is-hidden");
+  });
+
+  installButton.addEventListener("click", async () => {
+    if (!deferredInstallPrompt) {
+      showToast("На iPhone: Поделиться → На экран Домой. На Android откройте меню браузера → Установить приложение.");
+      return;
+    }
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    installButton.classList.add("is-hidden");
+  });
+
+  window.addEventListener("appinstalled", () => {
+    deferredInstallPrompt = null;
+    installButton.classList.add("is-hidden");
+    showToast("Linguapolis установлен на устройство");
+  });
+}
+
+async function registerServiceWorker() {
+  if (!("serviceWorker" in navigator) || location.protocol === "file:") return;
+  try {
+    await navigator.serviceWorker.register("./service-worker.js");
+  } catch (error) {
+    console.warn("Service worker registration failed", error);
+  }
+}
 
 function renderAuthAvailability(authState) {
   const note = document.getElementById("auth-config-note");

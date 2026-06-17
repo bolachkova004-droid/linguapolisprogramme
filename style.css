@@ -1018,3 +1018,26 @@ textarea:focus { border-color: #55cada; box-shadow: 0 0 0 4px rgba(22,169,202,.0
   .auth-intro h1 { font-size: clamp(38px,12vw,48px); overflow-wrap: anywhere; }
   .auth-view { overflow-x: hidden; }
 }
+
+
+/* v6: realistic avatars and install experience */
+.avatar-choice img,
+.student-avatar,
+.profile-player-avatar img {
+  object-fit: cover;
+  object-position: center 30%;
+}
+.install-button {
+  border: 1px solid rgba(45,154,104,.24);
+  background: rgba(45,154,104,.10);
+  color: #246f4e;
+  border-radius: 12px;
+  padding: 10px 13px;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+.install-button:hover { background: rgba(45,154,104,.17); transform: translateY(-1px); }
+@media (max-width: 760px) {
+  .install-button { padding: 9px 10px; font-size: 12px; }
+}
