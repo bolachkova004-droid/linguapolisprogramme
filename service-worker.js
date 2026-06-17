@@ -1,14 +1,17 @@
-const CACHE = "linguapolis-v7-shell";
+const CACHE = "linguapolis-v7-1-shell";
 const SHELL = [
   "./",
   "./index.html",
-  "./style.css",
-  "./script.js",
+  "./style.css?v=7.1",
+  "./script.js?v=7.1",
   "./auth.js",
   "./data.json",
   "./manifest.webmanifest",
   "./icons/icon-192.png",
-  "./icons/icon-512.png"
+  "./icons/icon-512.png",
+  "./assets/ui/lingogem.svg",
+  "./assets/mentor/irene.webp",
+  "./assets/mentor/irene-thumb.webp"
 ];
 
 self.addEventListener("install", event => {
@@ -17,7 +20,9 @@ self.addEventListener("install", event => {
 });
 
 self.addEventListener("activate", event => {
-  event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)))));
+  event.waitUntil(
+    caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key))))
+  );
   self.clients.claim();
 });
 
@@ -27,11 +32,19 @@ self.addEventListener("fetch", event => {
   const url = new URL(request.url);
   if (url.origin !== location.origin || url.pathname.endsWith("config.js")) return;
 
-  event.respondWith(
-    fetch(request).then(response => {
-      const copy = response.clone();
-      caches.open(CACHE).then(cache => cache.put(request, copy));
+  event.respondWith((async () => {
+    try {
+      const response = await fetch(request);
+      if (response.ok) {
+        const cache = await caches.open(CACHE);
+        await cache.put(request, response.clone());
+      }
       return response;
-    }).catch(() => caches.match(request).then(cached => cached || caches.match("./index.html")))
-  );
+    } catch (_error) {
+      const cached = await caches.match(request);
+      if (cached) return cached;
+      if (request.mode === "navigate") return caches.match("./index.html");
+      return new Response("Offline", { status: 503, statusText: "Offline" });
+    }
+  })());
 });

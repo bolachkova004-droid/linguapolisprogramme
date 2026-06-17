@@ -5,7 +5,7 @@ import { AuthService, AUTH_EVENT } from "./auth.js";
 const DATA_URL = "data.json";
 const DB_NAME = "linguapolis_db_v2";
 const DB_VERSION = 1;
-const APP_VERSION = 7;
+const APP_VERSION = "7.1";
 const SESSION_ID = crypto.randomUUID ? crypto.randomUUID() : `session-${Date.now()}`;
 
 const KEYS = {

@@ -1,4 +1,12 @@
-import { SUPABASE_CONFIG } from "./config.js";
+const DEFAULT_CONFIG = { url: "", publishableKey: "", teacherEmails: [] };
+let SUPABASE_CONFIG = DEFAULT_CONFIG;
+
+try {
+  const module = await import("./config.js");
+  SUPABASE_CONFIG = module.SUPABASE_CONFIG || DEFAULT_CONFIG;
+} catch (error) {
+  console.info("Supabase config is not present; demo mode is available.");
+}
 
 const AUTH_EVENT = "linguapolis:auth-changed";
 let supabaseClient = null;

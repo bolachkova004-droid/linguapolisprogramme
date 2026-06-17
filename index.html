@@ -5,8 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Linguapolis — симулятор английских диалогов с регистрацией и аналитикой прогресса.">
   <meta name="theme-color" content="#eafcff">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
   <title>Linguapolis Life — английский как игра</title>
-  <link rel="stylesheet" href="style.css?v=7">
+  <link rel="stylesheet" href="style.css?v=7.1">
 </head>
 <body>
   <div class="ambient ambient-one"></div>
@@ -104,6 +106,7 @@
       </nav>
 
       <div class="topbar-actions">
+        <button id="install-app" class="install-button is-hidden" type="button" title="Установить Linguapolis как приложение">Установить</button>
         <button id="student-chip" class="student-chip" type="button" title="Изменить аватар" data-action="edit-avatar">
           <img id="student-avatar" class="student-avatar-image" src="assets/avatars/nova.svg" alt="Аватар студента">
           <span><strong id="student-name">Студент</strong><small id="student-mood-top">В фокусе</small></span>
@@ -346,6 +349,6 @@
   <div id="celebration-layer" class="celebration-layer" aria-hidden="true"></div>
 
   <noscript><p class="noscript-message">Для работы Linguapolis необходимо включить JavaScript.</p></noscript>
-  <script type="module" src="script.js?v=7"></script>
+  <script type="module" src="script.js?v=7.1"></script>
 </body>
 </html>
