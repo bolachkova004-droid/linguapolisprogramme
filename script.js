@@ -5,7 +5,7 @@ import { AuthService, AUTH_EVENT } from "./auth.js";
 const DATA_URL = "data.json";
 const DB_NAME = "linguapolis_db_v2";
 const DB_VERSION = 1;
-const APP_VERSION = 6;
+const APP_VERSION = 7;
 const SESSION_ID = crypto.randomUUID ? crypto.randomUUID() : `session-${Date.now()}`;
 
 const KEYS = {
@@ -937,6 +937,7 @@ function renderEvaluation(session) {
     ["Беглость", metrics.fluency]
   ].map(([label, score]) => `<div class="metric-card"><span>${label}</span><strong>${score}</strong></div>`).join("");
   setText("feedback-text", answer.feedback.join(" "));
+  renderIreneFeedback(answer.mentorFeedback || buildIreneFeedback(metrics, answer.text, activeLesson().prompts[answer.promptIndex]));
   const prompt = activeLesson().prompts[answer.promptIndex];
   document.getElementById("model-answer").innerHTML = prompt.exampleAnswer
     ? `<strong>Один из естественных вариантов</strong><span>&nbsp;${escapeHtml(prompt.exampleAnswer)}</span>`
@@ -1044,6 +1045,7 @@ async function submitAnswer() {
   const prompt = lesson.prompts[session.promptIndex];
   const metrics = evaluateAnswer(text, prompt);
   const feedback = buildFeedback(metrics);
+  const mentorFeedback = buildIreneFeedback(metrics, text, prompt);
   const gains = calculateSkillGains(metrics);
 
   const record = {
@@ -1065,6 +1067,7 @@ async function submitAnswer() {
     targetChunks: prompt.targetChunks,
     metrics,
     feedback,
+    mentorFeedback,
     skillGains: gains
   };
 
@@ -1182,6 +1185,54 @@ function buildFeedback(metrics) {
   return feedback.slice(0, 3);
 }
 
+function buildIreneFeedback(metrics, text, prompt) {
+  const clean = String(text || "").trim();
+  const suggestions = [];
+  let type = "Совет";
+  let tone = "coach";
+  let title = "Хорошее начало";
+  let message = "Сделаем ответ чуть более естественным и уверенным.";
+
+  if (metrics.overall >= 85) {
+    type = "Сильный ответ"; tone = "praise"; title = "Очень уверенно!";
+    message = "Ответ понятный, естественный и хорошо связан с ситуацией. Для следующего уровня добавьте короткий пример или личную деталь.";
+    suggestions.push("Добавьте пример: for example…", "Попробуйте более точное прилагательное");
+  } else if (metrics.wordCount < 7 || metrics.fluency < 65) {
+    type = "Развернуть"; tone = "fix"; title = "Раскройте мысль подробнее";
+    message = "Добавьте ещё одно предложение: объясните причину, приведите пример или скажите, что произошло дальше.";
+    suggestions.push("Добавьте because…", "Добавьте for example…", "Скажите ещё 1 деталь");
+  } else if (metrics.structure < 65) {
+    type = "Исправить"; tone = "fix"; title = "Проверьте структуру";
+    message = "Убедитесь, что в предложении есть подлежащее и глагол, а мысль заканчивается точкой или вопросительным знаком.";
+    suggestions.push("Проверьте форму глагола", "Начните с заглавной буквы", "Добавьте финальный знак");
+  } else if (!metrics.targetUsed) {
+    type = "Усилить"; title = "Используйте фразу из урока";
+    message = `Попробуйте встроить одну из подсказок: ${prompt.targetChunks.slice(0,2).join(" / ")}. Так ответ будет точнее соответствовать заданию.`;
+    suggestions.push(...prompt.targetChunks.slice(0,2));
+  } else if (metrics.vocabulary < 70) {
+    type = "Лексика"; title = "Сделайте лексику ярче";
+    message = "Замените одно простое слово более точным и добавьте связку между мыслями.";
+    suggestions.push("also", "however", "I would say that…");
+  } else {
+    type = "Хорошо"; tone = "praise"; title = "Ответ звучит уверенно";
+    message = "Смысл передан хорошо. Следующий шаг — добавить больше личных деталей и разнообразить связки.";
+    suggestions.push("because", "also", "in my experience");
+  }
+  return { type, tone, title, message, suggestions: suggestions.slice(0,3), original: clean };
+}
+
+function renderIreneFeedback(feedback) {
+  if (!feedback) return;
+  setText("irene-feedback-type", feedback.type);
+  setText("irene-feedback-title", feedback.title);
+  setText("irene-feedback-text", feedback.message);
+  const tag = document.getElementById("irene-feedback-type");
+  tag?.classList.toggle("is-fix", feedback.tone === "fix");
+  tag?.classList.toggle("is-praise", feedback.tone === "praise");
+  const actions = document.getElementById("irene-feedback-actions");
+  if (actions) actions.innerHTML = (feedback.suggestions || []).map(item => `<span class="mentor-action">${escapeHtml(item)}</span>`).join("");
+}
+
 function calculateSkillGains(metrics) {
   const gain = score => score >= 88 ? 3 : score >= 68 ? 2 : score >= 52 ? 1 : 0;
   return {
@@ -1248,6 +1299,13 @@ async function openLessonSummary() {
     <div class="modal-stat"><span>Сильная сторона</span><strong>${escapeHtml(bestMetric.label)}</strong></div>
     <div class="modal-stat"><span>Награда</span><strong>+${lesson.reward.xp} XP</strong></div>
   `;
+  const weakest = bestLessonMetric(session.answers.map ? session.answers : []);
+  const mentorSummary = avgScore >= 85
+    ? "Вы отвечали уверенно. В следующем уроке добавляйте больше личных примеров — так речь станет ещё естественнее."
+    : avgScore >= 70
+      ? "Хорошая работа. Старайтесь давать ответы из двух предложений: мысль + причина или пример."
+      : "Главная цель следующего урока — полные предложения и одна дополнительная деталь в каждом ответе.";
+  setText("modal-mentor-copy", mentorSummary);
 
   const recentUnlocks = playerState.unlocks.slice(-3).map(unlock => {
     const [skill, value] = unlock.split(":");
@@ -1691,7 +1749,7 @@ function buildAnalyticsRecommendation(answers, averages) {
   const [weakest] = Object.entries(averages)
     .filter(([key]) => key !== "overall")
     .sort((a, b) => a[1] - b[1])[0] || ["relevance", 0];
-  return `Сейчас лучше всего подтянуть ${labels[weakest]}. ${tips[weakest]}`;
+  return `Irene советует сейчас подтянуть ${labels[weakest]}. ${tips[weakest]}`;
 }
 
 async function renderAdmin() {

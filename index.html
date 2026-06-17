@@ -6,7 +6,7 @@
   <meta name="description" content="Linguapolis — симулятор английских диалогов с регистрацией и аналитикой прогресса.">
   <meta name="theme-color" content="#eafcff">
   <title>Linguapolis Life — английский как игра</title>
-  <link rel="stylesheet" href="style.css?v=5">
+  <link rel="stylesheet" href="style.css?v=7">
 </head>
 <body>
   <div class="ambient ambient-one"></div>
@@ -81,6 +81,10 @@
           <p class="welcome-copy">Каждый наставник предлагает свой стиль общения. Можно менять наставника и сохранять отдельный прогресс.</p>
         </div>
       </header>
+      <section class="mentor-welcome surface">
+        <img src="assets/mentor/irene-thumb.webp" alt="Наставник Irene">
+        <div><p class="eyebrow">ВАШ ЛИЧНЫЙ НАСТАВНИК</p><h2>Irene поможет улучшить каждый ответ</h2><p>Она покажет, где исправить формулировку, как добавить детали и как сделать английскую речь естественнее.</p></div>
+      </section>
       <div id="character-grid" class="character-grid" aria-label="Выбор персонажа"></div>
       <p class="storage-note">Демо хранит прогресс и ответы в базе IndexedDB внутри этого браузера.</p>
     </div>
@@ -108,7 +112,6 @@
         <div class="game-chip streak-top" title="Серия занятий"><span>⚡</span><strong id="top-streak">0</strong></div>
         <div class="game-chip coin-top" title="Монеты"><span>◆</span><strong id="top-coins">0</strong></div>
         <div class="compact-level"><span>Уровень</span><strong id="top-level">1</strong></div>
-        <button id="install-app" class="install-button is-hidden" type="button" aria-label="Установить приложение">Установить</button>
         <button class="exit-button" type="button" data-action="logout" data-track="logout" aria-label="Выйти из аккаунта" title="Выйти"><span aria-hidden="true">↗</span><strong>Выйти</strong></button>
       </div>
     </header>
@@ -222,6 +225,15 @@
               <div class="section-heading compact"><div><p class="eyebrow">ОЦЕНКА ОТВЕТА</p><h3 id="evaluation-title">—</h3></div></div>
               <div id="metric-grid" class="metric-grid"></div>
               <p id="feedback-text" class="feedback-text"></p>
+              <section id="irene-feedback" class="irene-feedback" aria-label="Совет наставника Irene">
+                <img src="assets/mentor/irene-thumb.webp" alt="Irene">
+                <div class="irene-feedback-body">
+                  <div class="irene-feedback-head"><span><strong>Irene</strong><small>Language mentor</small></span><span id="irene-feedback-type" class="mentor-tag">Совет</span></div>
+                  <p id="irene-feedback-title" class="irene-title">Хорошее начало</p>
+                  <p id="irene-feedback-text">Добавьте ещё одну деталь, чтобы ответ звучал увереннее.</p>
+                  <div id="irene-feedback-actions" class="mentor-actions"></div>
+                </div>
+              </section>
               <div id="model-answer" class="model-answer"></div>
               <button id="next-dialogue" class="secondary-button" type="button" data-track="next_dialogue">Продолжить диалог →</button>
             </div>
@@ -243,9 +255,10 @@
             <div class="section-heading"><div><p class="eyebrow">МЕТРИКИ</p><h3>Средняя оценка ответов</h3></div></div>
             <div id="analytics-bars" class="analytics-bars"></div>
           </section>
-          <section class="surface recommendation-card">
-            <div class="section-heading compact"><div><p class="eyebrow">СЛЕДУЮЩИЙ ШАГ</p><h3>Персональная рекомендация</h3></div></div>
-            <p id="analytics-recommendation" class="recommendation-text">Завершите первую реплику, чтобы получить рекомендацию.</p>
+          <section class="surface recommendation-card mentor-analytics-card">
+            <img src="assets/mentor/irene-thumb.webp" alt="Irene">
+            <div><div class="section-heading compact"><div><p class="eyebrow">СОВЕТ ОТ IRENE</p><h3>Персональная рекомендация</h3></div></div>
+            <p id="analytics-recommendation" class="recommendation-text">Завершите первую реплику, чтобы получить рекомендацию.</p></div>
           </section>
           <section class="surface achievements-card life-card">
             <div class="section-heading"><div><p class="eyebrow">ДОСТИЖЕНИЯ</p><h3>Коллекция наград</h3></div><span id="achievement-progress-label" class="demo-badge">0 / 8</span></div>
@@ -304,6 +317,10 @@
       <h2 id="modal-title">Отличная работа</h2>
       <p id="modal-copy" class="muted">—</p>
       <div id="modal-results" class="modal-results"></div>
+      <section class="modal-mentor-note">
+        <img src="assets/mentor/irene-thumb.webp" alt="Irene">
+        <div><strong>Итог от Irene</strong><p id="modal-mentor-copy">Продолжайте практику — каждый диалог делает речь увереннее.</p></div>
+      </section>
       <div id="modal-unlocks" class="modal-unlocks"></div>
       <div class="modal-actions">
         <button class="secondary-button" type="button" data-action="close-modal">Вернуться</button>
@@ -329,6 +346,6 @@
   <div id="celebration-layer" class="celebration-layer" aria-hidden="true"></div>
 
   <noscript><p class="noscript-message">Для работы Linguapolis необходимо включить JavaScript.</p></noscript>
-  <script type="module" src="script.js?v=6"></script>
+  <script type="module" src="script.js?v=7"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-const CACHE = "linguapolis-v6-shell";
+const CACHE = "linguapolis-v7-shell";
 const SHELL = [
   "./",
   "./index.html",
