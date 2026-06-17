@@ -1,11 +1,209 @@
-import { AuthService, AUTH_EVENT } from "./auth.js";
+"use strict";
+window.__LINGUAPOLIS_READY__ = false;
+window.addEventListener("unhandledrejection", event => console.error("Unhandled Linguapolis error", event.reason));
+const { AuthService, AUTH_EVENT } = (() => {
+const DEFAULT_CONFIG = { url: "", publishableKey: "", teacherEmails: [] };
+let SUPABASE_CONFIG = DEFAULT_CONFIG;
+let supabaseConfigLoaded = false;
+
+const AUTH_EVENT = "linguapolis:auth-changed";
+let supabaseClient = null;
+let authMode = "demo";
+let currentStudent = null;
+let unsubscribe = null;
+
+function hasSupabaseConfig() {
+  return Boolean(
+    SUPABASE_CONFIG?.url?.startsWith("https://") &&
+    SUPABASE_CONFIG?.publishableKey &&
+    !SUPABASE_CONFIG.publishableKey.includes("PASTE")
+  );
+}
+
+function teacherEmails() {
+  return (SUPABASE_CONFIG.teacherEmails || [])
+    .map(email => String(email || "").trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function normalizeUser(user) {
+  if (!user) return null;
+  const email = String(user.email || "").toLowerCase();
+  const metadata = user.user_metadata || {};
+  return {
+    id: user.id,
+    email,
+    name: metadata.full_name || metadata.name || email.split("@")[0] || "Студент",
+    classCode: metadata.class_code || "",
+    avatarId: metadata.avatar_id || "nova",
+    role: teacherEmails().includes(email) ? "teacher" : "student",
+    isGuest: false
+  };
+}
+
+function demoStudent() {
+  return {
+    id: "guest",
+    email: "",
+    name: "Демо-студент",
+    classCode: "",
+    avatarId: "nova",
+    role: "student",
+    isGuest: true
+  };
+}
+
+function emitAuthChange(student = currentStudent) {
+  window.dispatchEvent(new CustomEvent(AUTH_EVENT, { detail: { student, mode: authMode } }));
+}
+
+const AuthService = {
+  async init() {
+    if (!supabaseConfigLoaded) {
+      supabaseConfigLoaded = true;
+      try {
+        const module = await import("./config.js?v=7.3");
+        SUPABASE_CONFIG = module.SUPABASE_CONFIG || DEFAULT_CONFIG;
+      } catch (error) {
+        console.info("Supabase config is not present; demo mode is available.");
+        SUPABASE_CONFIG = DEFAULT_CONFIG;
+      }
+    }
+    if (!hasSupabaseConfig()) {
+      authMode = "demo";
+      currentStudent = null;
+      return { configured: false, student: null, mode: authMode };
+    }
+
+    try {
+      const { createClient } = await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm");
+      supabaseClient = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.publishableKey, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true
+        }
+      });
+      authMode = "supabase";
+      const { data, error } = await supabaseClient.auth.getSession();
+      if (error) throw error;
+      currentStudent = normalizeUser(data.session?.user || null);
+
+      const listener = supabaseClient.auth.onAuthStateChange((_event, session) => {
+        currentStudent = normalizeUser(session?.user || null);
+        emitAuthChange();
+      });
+      unsubscribe = listener.data.subscription;
+      return { configured: true, student: currentStudent, mode: authMode };
+    } catch (error) {
+      console.error("Supabase auth initialization failed", error);
+      authMode = "unavailable";
+      currentStudent = null;
+      return { configured: true, student: null, mode: authMode, error };
+    }
+  },
+
+  isConfigured() {
+    return hasSupabaseConfig();
+  },
+
+  getMode() {
+    return authMode;
+  },
+
+  getStudent() {
+    return currentStudent;
+  },
+
+  isTeacher() {
+    return currentStudent?.role === "teacher";
+  },
+
+  async signUp({ name, email, password, classCode, avatarId = "nova" }) {
+    if (!supabaseClient) throw new Error("Регистрация ещё не подключена. Сначала настройте Supabase.");
+    const redirectTo = `${window.location.origin}${window.location.pathname}`;
+    const { data, error } = await supabaseClient.auth.signUp({
+      email: email.trim(),
+      password,
+      options: {
+        emailRedirectTo: redirectTo,
+        data: {
+          full_name: name.trim(),
+          class_code: classCode.trim(),
+          avatar_id: avatarId
+        }
+      }
+    });
+    if (error) throw error;
+    currentStudent = normalizeUser(data.user || data.session?.user || null);
+    return {
+      student: currentStudent,
+      needsEmailConfirmation: Boolean(data.user && !data.session)
+    };
+  },
+
+  async signIn({ email, password }) {
+    if (!supabaseClient) throw new Error("Вход ещё не подключён. Сначала настройте Supabase.");
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+      email: email.trim(),
+      password
+    });
+    if (error) throw error;
+    currentStudent = normalizeUser(data.user || data.session?.user || null);
+    emitAuthChange();
+    return currentStudent;
+  },
+
+  continueAsGuest() {
+    authMode = "demo";
+    currentStudent = demoStudent();
+    emitAuthChange();
+    return currentStudent;
+  },
+
+
+  async updateProfile({ name, avatarId } = {}) {
+    const nextName = String(name || currentStudent?.name || "Студент").trim();
+    const nextAvatar = String(avatarId || currentStudent?.avatarId || "nova").trim();
+    if (supabaseClient && currentStudent && !currentStudent.isGuest) {
+      const { data, error } = await supabaseClient.auth.updateUser({
+        data: { full_name: nextName, avatar_id: nextAvatar }
+      });
+      if (error) throw error;
+      currentStudent = normalizeUser(data.user);
+    } else if (currentStudent) {
+      currentStudent = { ...currentStudent, name: nextName, avatarId: nextAvatar };
+    }
+    emitAuthChange();
+    return currentStudent;
+  },
+
+  async signOut() {
+    if (supabaseClient && currentStudent && !currentStudent.isGuest) {
+      const { error } = await supabaseClient.auth.signOut();
+      if (error) throw error;
+    }
+    currentStudent = null;
+    emitAuthChange();
+  },
+
+  destroy() {
+    unsubscribe?.unsubscribe?.();
+    unsubscribe = null;
+  }
+};
+
+
+
+return { AuthService, AUTH_EVENT };
+})();
 
 "use strict";
 
 const DATA_URL = "data.json";
 const DB_NAME = "linguapolis_db_v2";
 const DB_VERSION = 1;
-const APP_VERSION = "7.2";
+const APP_VERSION = "7.3";
 const SESSION_ID = crypto.randomUUID ? crypto.randomUUID() : `session-${Date.now()}`;
 
 const KEYS = {
@@ -190,7 +388,14 @@ class BrowserDatabase {
   }
 }
 
-document.addEventListener("DOMContentLoaded", () => boot().catch(handleFatalError));
+function startLinguapolisApp() {
+  return boot().catch(handleFatalError);
+}
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", startLinguapolisApp, { once: true });
+} else {
+  startLinguapolisApp();
+}
 
 async function boot() {
   // Bind the authentication controls first so tabs and demo mode remain usable
@@ -213,6 +418,12 @@ async function boot() {
     await startStudentSession(authState.student, true);
   } else {
     showAuthView();
+  }
+
+  window.__LINGUAPOLIS_READY__ = true;
+  if (window.__LINGUAPOLIS_PENDING_GUEST__) {
+    window.__LINGUAPOLIS_PENDING_GUEST__ = false;
+    await window.LinguapolisStartGuest();
   }
 
   await logEvent("app_boot", {
@@ -478,17 +689,29 @@ function validateAppData(data) {
   });
 }
 
+async function startGuestSafely() {
+  if (!APP_DATA) {
+    window.__LINGUAPOLIS_PENDING_GUEST__ = true;
+    setAuthMessage("Загружаем игру…", "info");
+    return;
+  }
+  try {
+    const student = AuthService.continueAsGuest();
+    await startStudentSession(student);
+    await logEvent("guest_session_started", {});
+  } catch (error) {
+    console.error("Guest session failed", error);
+    setAuthMessage("Не удалось открыть демо. Обновите страницу и попробуйте снова.", "error");
+  }
+}
+window.LinguapolisStartGuest = startGuestSafely;
+
 function bindGlobalEvents() {
   document.querySelectorAll("[data-auth-tab]").forEach(button => {
     button.addEventListener("click", () => setAuthTab(button.dataset.authTab));
   });
   document.getElementById("login-form")?.addEventListener("submit", handleLogin);
   document.getElementById("register-form")?.addEventListener("submit", handleRegistration);
-  document.getElementById("guest-login")?.addEventListener("click", async () => {
-    const student = AuthService.continueAsGuest();
-    await startStudentSession(student);
-    await logEvent("guest_session_started", {});
-  });
   window.addEventListener(AUTH_EVENT, event => {
     const student = event.detail?.student || null;
     if (student && currentStudent?.id !== student.id) startStudentSession(student, true);

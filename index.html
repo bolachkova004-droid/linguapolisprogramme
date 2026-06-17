@@ -8,7 +8,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <title>Linguapolis Life — английский как игра</title>
-  <link rel="stylesheet" href="style.css?v=7.2">
+  <link rel="stylesheet" href="style.css?v=7.3">
 </head>
 <body>
   <div class="ambient ambient-one"></div>
@@ -860,6 +860,37 @@
 }
 </script>
   <noscript><p class="noscript-message">Для работы Linguapolis необходимо включить JavaScript.</p></noscript>
-  <script type="module" src="script.js?v=7.2"></script>
+  <script>
+(function () {
+  function setTab(tab) {
+    var selected = tab === "register" ? "register" : "login";
+    document.querySelectorAll("[data-auth-tab]").forEach(function (button) {
+      var active = button.getAttribute("data-auth-tab") === selected;
+      button.classList.toggle("is-active", active);
+      button.setAttribute("aria-selected", String(active));
+    });
+    document.querySelectorAll(".auth-panel").forEach(function (panel) {
+      panel.classList.toggle("is-active", panel.id === "auth-" + selected + "-panel");
+    });
+    var message = document.getElementById("auth-message");
+    if (message) { message.textContent = ""; message.className = "auth-message"; }
+  }
+  document.addEventListener("click", function (event) {
+    var tab = event.target.closest && event.target.closest("[data-auth-tab]");
+    if (tab) { event.preventDefault(); setTab(tab.getAttribute("data-auth-tab")); return; }
+    var guest = event.target.closest && event.target.closest("#guest-login");
+    if (guest) {
+      event.preventDefault();
+      if (typeof window.LinguapolisStartGuest === "function") window.LinguapolisStartGuest();
+      else {
+        window.__LINGUAPOLIS_PENDING_GUEST__ = true;
+        var message = document.getElementById("auth-message");
+        if (message) { message.textContent = "Загружаем игру…"; message.className = "auth-message is-info"; }
+      }
+    }
+  });
+})();
+</script>
+<script defer src="script.js?v=7.3"></script>
 </body>
 </html>
